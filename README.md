@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Is A Fruit
+
+This project is build to teach and showcade the inner ideology tobuild a AI model.
 
 ## Getting Started
 
