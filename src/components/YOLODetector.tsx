@@ -27,6 +27,7 @@ export function YOLODetector() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [fps, setFps] = useState(0);
   const [inferenceTime, setInferenceTime] = useState(0);
+  const [targetFps, setTargetFps] = useState(10);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,6 +35,8 @@ export function YOLODetector() {
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const fpsCounterRef = useRef<number[]>([]);
+  const isInferringRef = useRef<boolean>(false);
+  const lastInferenceTimeRef = useRef<number>(0);
 
   // Get available video devices
   const getVideoDevices = useCallback(async () => {
@@ -64,8 +67,8 @@ export function YOLODetector() {
       const constraints = {
         video: { 
           deviceId: { exact: selectedDevice },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         },
         audio: false,
       };
@@ -103,6 +106,21 @@ export function YOLODetector() {
   const captureAndDetect = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || !isDetecting) return;
 
+    // Skip if inference is already in progress
+    if (isInferringRef.current) {
+      animationFrameRef.current = requestAnimationFrame(captureAndDetect);
+      return;
+    }
+
+    // Throttle based on target FPS
+    const now = performance.now();
+    const minInterval = 1000 / targetFps;
+    if (now - lastInferenceTimeRef.current < minInterval) {
+      animationFrameRef.current = requestAnimationFrame(captureAndDetect);
+      return;
+    }
+    lastInferenceTimeRef.current = now;
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -118,8 +136,10 @@ export function YOLODetector() {
     // Get image data
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
-    // Convert to base64
-    const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+    // Convert to base64 with lower quality for faster encoding
+    const base64Image = canvas.toDataURL('image/jpeg', 0.5);
+
+    isInferringRef.current = true;
 
     try {
       // Send to inference API
@@ -144,12 +164,14 @@ export function YOLODetector() {
       }
     } catch (error) {
       console.error('Detection error:', error);
+    } finally {
+      isInferringRef.current = false;
     }
 
     // Calculate FPS
-    const now = performance.now();
+    const fpsNow = performance.now();
     if (lastFrameTimeRef.current) {
-      const delta = now - lastFrameTimeRef.current;
+      const delta = fpsNow - lastFrameTimeRef.current;
       const currentFps = 1000 / delta;
       fpsCounterRef.current.push(currentFps);
       
@@ -160,13 +182,13 @@ export function YOLODetector() {
       const avgFps = fpsCounterRef.current.reduce((a, b) => a + b, 0) / fpsCounterRef.current.length;
       setFps(Math.round(avgFps));
     }
-    lastFrameTimeRef.current = now;
+    lastFrameTimeRef.current = fpsNow;
 
     // Continue detection loop
     if (isDetecting) {
       animationFrameRef.current = requestAnimationFrame(captureAndDetect);
     }
-  }, [isDetecting]);
+  }, [isDetecting, targetFps]);
 
   // Start/stop detection
   const toggleDetection = () => {
@@ -234,11 +256,27 @@ export function YOLODetector() {
         {/* Stats Overlay */}
         {isStreamActive && (
           <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-md text-sm font-mono">
-            <div>FPS: {fps}</div>
+            <div>FPS: {fps} / {targetFps}</div>
             <div>Inference: {inferenceTime}ms</div>
             <div>Detections: {detections.length}</div>
           </div>
         )}
+      </div>
+
+      {/* FPS Control */}
+      <div className="flex items-center gap-4 px-2">
+        <label className="text-sm font-medium">Target FPS:</label>
+        <input
+          placeholder="Target FPS"
+          type="range"
+          min="1"
+          max="30"
+          value={targetFps}
+          onChange={(e) => setTargetFps(Number(e.target.value))}
+          className="flex-1"
+          disabled={!isStreamActive}
+        />
+        <span className="text-sm font-mono w-12">{targetFps}</span>
       </div>
 
       {/* Controls */}
