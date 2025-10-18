@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Video, VideoOff, Camera, Loader2, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { Detection } from '@/lib/yolo/types';
 import Image from 'next/image';
 
@@ -27,6 +28,8 @@ export function PhotoCapture() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [inferenceTime, setInferenceTime] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const toastId = useRef<string | number>(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -96,8 +99,6 @@ export function PhotoCapture() {
   // Capture photo and send for detection
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current || !isStreamActive) return;
-
-    setIsProcessing(true);
     
     try {
       const video = videoRef.current;
@@ -114,6 +115,14 @@ export function PhotoCapture() {
 
       // Get base64 image
       const base64Image = canvas.toDataURL('image/jpeg', 0.9);
+      
+      // Show capturing state and loading toast
+      setIsCapturing(true);
+      setAnnotatedImage(null);
+      setDetections([]);
+      
+      // Show loading toast
+      toastId.current = toast.loading('Processing image...');
 
       // Send to detection API
       const response = await fetch('/api/photo-detect', {
@@ -132,11 +141,21 @@ export function PhotoCapture() {
         setDetections(result.detections);
         setAnnotatedImage(result.annotatedImage);
         setInferenceTime(result.inferenceTime);
+        
+        // Update toast to success
+        toast.success(`Found ${result.detections.length} object(s) in ${result.inferenceTime}ms`, {
+          id: toastId.current
+        });
       }
     } catch (error) {
       console.error('Capture and detection error:', error);
+      toast.error('Failed to process image. Please try again.', {
+        id: toastId.current
+      });
     } finally {
       setIsProcessing(false);
+      setIsCapturing(false);
+      toastId.current = 0;
     }
   };
 
@@ -241,17 +260,8 @@ export function PhotoCapture() {
                 disabled={!isStreamActive || isProcessing}
                 className="flex-1 gap-2"
               >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4" />
-                    <span>Capture Photo</span>
-                  </>
-                )}
+                <Camera className="w-4 h-4" />
+                <span>{isProcessing ? 'Capturing...' : 'Capture Photo'}</span>
               </Button>
             </div>
           </div>
@@ -271,7 +281,13 @@ export function PhotoCapture() {
         <CardContent className="space-y-4">
           {/* Annotated Image */}
           <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-            {annotatedImage ? (
+            {isCapturing ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
+                <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                <p className="text-lg font-medium">Analyzing image...</p>
+                <p className="text-sm opacity-80 mt-1">This may take a few seconds</p>
+              </div>
+            ) : annotatedImage ? (
               <Image
                 src={annotatedImage}
                 alt="Detected objects"
