@@ -29,40 +29,48 @@ def convert_model(model_name='yolo11n'):
     pt_path = models_dir / f'{model_name}.pt'
     onnx_path = models_dir / f'{model_name}.onnx'
     
+    print(f"📂 Project root: {project_root}")
+    print(f"📂 Models directory: {models_dir}\n")
+    
     # Check if ONNX already exists
     if onnx_path.exists():
         print(f"✅ ONNX model already exists: {onnx_path}")
         print(f"   Size: {onnx_path.stat().st_size / 1024 / 1024:.2f} MB")
+        print(f"\n🎉 Ready to use!")
+        print(f"   Start the dev server: npm run dev")
         return
     
-    # Download model if needed
+    # Check if PyTorch model exists
     if not pt_path.exists():
-        print(f"📥 Downloading {model_name}.pt...")
-        model = YOLO(f'{model_name}.pt')
-        # Move to models directory
-        import shutil
-        shutil.move(f'{model_name}.pt', pt_path)
-    else:
-        print(f"📂 Loading model from: {pt_path}")
-        model = YOLO(str(pt_path))
+        print(f"❌ Error: PyTorch model not found at: {pt_path}")
+        print(f"\n📥 Please download the model first:")
+        print(f"   npm run download-model\n")
+        sys.exit(1)
+    
+    print(f"📂 Loading model from: {pt_path}")
+    model = YOLO(str(pt_path))
     
     # Export to ONNX
     print(f"\n🔄 Converting to ONNX format...")
     print(f"   This may take a minute...\n")
     
     try:
-        model.export(
+        # Export directly to the target path
+        export_path = model.export(
             format='onnx',
             imgsz=640,
             simplify=True,
             opset=12
         )
         
-        # Move ONNX file to models directory
-        source_onnx = Path(f'{model_name}.onnx')
-        if source_onnx.exists():
+        # Move ONNX file to models directory if it's not already there
+        export_path = Path(export_path)
+        if export_path != onnx_path and export_path.exists():
             import shutil
-            shutil.move(str(source_onnx), str(onnx_path))
+            shutil.move(str(export_path), str(onnx_path))
+        
+        if not onnx_path.exists():
+            raise Exception("ONNX file was not created")
         
         print(f"✅ Conversion successful!")
         print(f"\n📊 Model Information:")
@@ -76,6 +84,10 @@ def convert_model(model_name='yolo11n'):
         
     except Exception as e:
         print(f"❌ Conversion failed: {e}")
+        print(f"\n💡 Troubleshooting:")
+        print(f"   - Ensure ultralytics is installed: uv sync")
+        print(f"   - Check that the .pt model is valid")
+        print(f"   - Try re-downloading: npm run download-model\n")
         sys.exit(1)
 
 

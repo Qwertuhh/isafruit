@@ -4,7 +4,6 @@ import path from "path";
 import { terminal } from "terminal-kit";
 import { promisify } from "util";
 import stream from "stream";
-import { execSync } from "child_process";
 
 const pipeline = promisify(stream.pipeline);
 
@@ -12,13 +11,6 @@ const MODEL_URL =
   "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt";
 const MODELS_DIR = path.join(__dirname, "..", "public", "models");
 const MODEL_PATH = path.join(MODELS_DIR, "yolo11n.pt");
-const ONNX_MODEL_PATH = path.join(MODELS_DIR, "yolo11n.onnx");
-const MODEL_CONVERTER_SCRIPT = path.join(
-  __dirname,
-  "model",
-  "model-convertor",
-  "main.py"
-);
 
 // Initialize terminal
 try {
@@ -42,23 +34,9 @@ if (!fs.existsSync(MODELS_DIR)) {
   }
 }
 
-// Check if ONNX model already exists
-if (fs.existsSync(ONNX_MODEL_PATH)) {
-  terminal
-    .green("✅ ONNX model already exists at: ")
-    .white(ONNX_MODEL_PATH + "\n\n");
-  terminal.cyan("No conversion needed. You can start using the model.\n");
-  process.exit(0);
-}
-
-// Check if PyTorch model exists but needs conversion
+// Check if PyTorch model already exists
 if (fs.existsSync(MODEL_PATH)) {
   terminal.green("✅ Model already exists at: ").white(MODEL_PATH + "\n\n");
-
-  terminal.yellow("⚠️  Note: You need to convert this to ONNX format:\n");
-  terminal.cyan("   uv add ultralytics\n");
-  terminal.cyan("   uv run model/model-convertor/main.py\n\n");
-
   terminal.yellow("Do you want to download the model again? (y/N) ");
 
   terminal.yesOrNo(
@@ -68,7 +46,8 @@ if (fs.existsSync(MODEL_PATH)) {
       if (result) {
         startDownload();
       } else {
-        terminal.cyan("Exiting...\n");
+        terminal.cyan("Model already downloaded. Run conversion next:\n");
+        terminal.white("   npm run convert-model\n\n");
         process.exit(0);
       }
     }
@@ -135,50 +114,12 @@ function startDownload() {
       terminal("\n\n");
       terminal.green("✅ Model downloaded successfully!\n\n");
 
-      terminal.blue("Next steps:\n");
-
-      // Check if we can run the conversion automatically
-      if (fs.existsSync(MODEL_CONVERTER_SCRIPT)) {
-        terminal.cyan("\n🔄 Attempting to convert model to ONNX format...\n");
-
-        try {
-          // Run the conversion script
-          execSync("uv run model/model-convertor/main.py", {
-            stdio: "inherit",
-          });
-
-          if (fs.existsSync(ONNX_MODEL_PATH)) {
-            terminal.green(
-              "\n✅ Successfully converted model to ONNX format!\n"
-            );
-            terminal.cyan("You can now start using the model.\n");
-          } else {
-            throw new Error("ONNX model was not created");
-          }
-        } catch (error: Error | unknown) {
-          terminal.yellow(
-            "\nFailed to automatically convert model. Please run manually:\n"
-          );
-          terminal.cyan("   1. Enter the model directory:\n");
-          terminal.white(`      cd ${MODEL_CONVERTER_SCRIPT}\n\n`);
-          terminal.cyan("   2. Install Python dependencies:\n");
-          terminal.white("      uv add ultralytics\n\n");
-          terminal.cyan("   3. Convert to ONNX format:\n");
-          terminal.white(`      uv run ${MODEL_CONVERTER_SCRIPT}\n\n`);
-        }
-      } else {
-        terminal.cyan("   1. Enter the model directory:\n");
-        terminal.white(`      cd ${MODEL_CONVERTER_SCRIPT}\n\n`);
-        terminal.cyan("   2. Install Python dependencies:\n");
-        terminal.white("      uv add ultralytics\n\n");
-        terminal.cyan("   3. Convert to ONNX format:\n");
-        terminal.white(`      uv run ${MODEL_CONVERTER_SCRIPT}\n\n`);
-      }
-
-      terminal.cyan("   3. Start the development server:\n");
+      terminal.blue("📋 Next steps:\n");
+      terminal.cyan("   1. Convert model to ONNX format:\n");
+      terminal.white("      npm run convert-model\n\n");
+      terminal.cyan("   2. Start the development server:\n");
       terminal.white("      npm run dev\n\n");
 
-      // Exit successfully after completion
       process.exit(0);
     } catch (err: Error | unknown) {
       fs.unlink(MODEL_PATH, () => {}); // Delete the file async if there was an error

@@ -27,7 +27,41 @@ This Next.js application provides a webcam selector component with real-time vid
 npm install
 ```
 
-### 2. Run Development Server
+### 2. Setup YOLO Model
+
+**Quick Setup (Recommended)**
+
+Run the complete model setup (download + convert) with one command:
+
+```bash
+npm run setup-model
+```
+
+This will:
+
+1. Download the YOLO11n model (~6MB) from GitHub
+2. Convert it to ONNX format for inference
+
+**Step-by-Step Setup**
+
+Alternatively, run each step separately:
+
+```bash
+# Download the model
+npm run download-model
+
+# Convert to ONNX format
+npm run convert-model
+```
+
+**Requirements**
+
+- Python 3.13+ (for model conversion)
+- [uv](https://github.com/astral-sh/uv) (Python package manager)
+
+For detailed model setup instructions and troubleshooting, see [scripts/model/README.md](scripts/model/README.md).
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
@@ -81,6 +115,7 @@ export default function Page() {
 ### Component API
 
 The component is self-contained and requires no props. It manages its own state for:
+
 - Available devices
 - Selected device
 - Stream active status
@@ -118,15 +153,18 @@ npm start
 ## Troubleshooting
 
 ### Camera not detected
+
 - Ensure camera is connected and not in use by another application
 - Check browser permissions in settings
 - Try refreshing the page
 
 ### Permission denied
+
 - Click the camera icon in the address bar to manage permissions
 - Clear site data and try again
 
 ### No video display
+
 - Check if the stream is active (Start button should show "Stop")
 - Open browser console for error messages
 - Verify camera is working in other applications
