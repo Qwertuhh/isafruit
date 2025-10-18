@@ -22,7 +22,7 @@ def convert_model(model_name='yolo11n'):
     print(f"🚀 YOLO11 Model Converter\n")
     
     # Define paths
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent.parent.parent.parent
     models_dir = project_root / 'public' / 'models'
     models_dir.mkdir(parents=True, exist_ok=True)
     
@@ -78,7 +78,9 @@ def convert_model(model_name='yolo11n'):
         print(f"❌ Conversion failed: {e}")
         sys.exit(1)
 
-if __name__ == '__main__':
+
+
+def main():
     # Parse command line arguments
     model_name = sys.argv[1] if len(sys.argv) > 1 else 'yolo11n'
     
@@ -88,4 +90,11 @@ if __name__ == '__main__':
         print(f"   Valid options: {', '.join(valid_models)}")
         sys.exit(1)
     
-    convert_model(model_name)
+    try:
+        convert_model(model_name)
+    except Exception as e:
+        print(f"❌ Error during model conversion: {e}")
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
