@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -75,7 +76,13 @@ export function YOLODetector() {
       await videoRef.current.play();
       setIsStreamActive(true);
     } catch (err) {
+      toast.error(`Error starting video stream`, {
+        description: err instanceof Error ? err.message : 'Please try again later.',
+        duration: 5000,
+      });
       console.error('Error starting video stream:', err);
+     
+     
     }
   };
 
