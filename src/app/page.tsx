@@ -1,5 +1,8 @@
 'use client';
 import { YOLODetector } from "@/components/YOLODetector";
+import { Button } from "@/components/ui/button";
+import { Camera } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -18,6 +21,14 @@ export default function Home() {
             <span className="px-2 py-1 bg-primary/10 rounded">YOLO11 Inference</span>
             <span>→</span>
             <span className="px-2 py-1 bg-primary/10 rounded">Annotated Results</span>
+          </div>
+          <div className="mt-6">
+            <Link href="/photo">
+              <Button variant="outline" className="gap-2">
+                <Camera className="w-4 h-4" />
+                <span>Try Photo Detection Mode</span>
+              </Button>
+            </Link>
           </div>
         </div>
         <YOLODetector />
