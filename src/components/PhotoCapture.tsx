@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Video, VideoOff, Camera, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
-import { Detection, GPUInfo } from "@/lib/yolo/types";
+import { Detection, GPUInfo } from "@/types";
 import Image from "next/image";
 
 interface DeviceInfo {

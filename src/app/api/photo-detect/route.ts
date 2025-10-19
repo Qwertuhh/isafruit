@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as ort from "onnxruntime-node";
 import { processYOLOOutput } from "@/lib/yolo/postprocessing";
-import {
-  DEFAULT_YOLO_CONFIG,
-  Detection,
-  FRUIT_VEGETABLE_CLASSES,
-  GPUInfo,
-} from "@/lib/yolo/types";
+import { GPUInfo, RawInferenceResponse } from "@/types";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { execSync } from "child_process";
+import { DEFAULT_YOLO_CONFIG, FRUIT_VEGETABLE_CLASSES } from "@/config";
 
 let session: ort.InferenceSession | null = null;
 let gpuInfo: GPUInfo | null = null;
@@ -62,7 +58,7 @@ function detectGPU(): GPUInfo {
       }
     }
   } catch (error) {
-    console.log("ℹ️ No NVIDIA GPU detected or nvidia-smi not available");
+    console.log("No NVIDIA GPU detected or nvidia-smi not available", error);
   }
 
   gpuInfo = {
@@ -125,7 +121,8 @@ async function initializeSession(): Promise<ort.InferenceSession> {
     return session;
   } catch (error) {
     console.error(
-      "Failed to create session with preferred providers, falling back to CPU"
+      "Failed to create session with preferred providers, falling back to CPU",
+      error
     );
 
     session = await ort.InferenceSession.create(modelPath, {
@@ -249,10 +246,10 @@ export async function POST(request: NextRequest) {
         throw new Error(`Python backend error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: RawInferenceResponse = await response.json();
 
       // Transform Python response to match Node.js format
-      const transformedDetections = data.detections.map((d: Detection) => ({
+      const transformedDetections = data.detections.map((d) => ({
         bbox: d.bbox,
         class: d.class_name,
         confidence: d.confidence,

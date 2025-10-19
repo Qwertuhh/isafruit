@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as ort from "onnxruntime-node";
 import { processYOLOOutput } from "@/lib/yolo/postprocessing";
-import {
-  DEFAULT_YOLO_CONFIG,
-  Detection,
-  FRUIT_VEGETABLE_CLASSES,
-  GPUInfo,
-} from "@/lib/yolo/types";
+import { DEFAULT_YOLO_CONFIG, FRUIT_VEGETABLE_CLASSES} from "@/config";
+import { GPUInfo, RawInferenceResponse } from "@/types";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { execSync } from "child_process";
-import { CV } from "@techstark/opencv-js";
 
 let session: ort.InferenceSession | null = null;
 let gpuInfo: GPUInfo | null = null;
@@ -89,7 +84,7 @@ function detectGPU(): GPUInfo {
     }
   } catch (error) {
     // nvidia-smi not found or error executing
-    console.log("ℹ️ No NVIDIA GPU detected or nvidia-smi not available");
+    console.log("ℹ️ No NVIDIA GPU detected or nvidia-smi not available ", error);
   }
 
   // Fallback to CPU
@@ -222,10 +217,9 @@ export async function POST(request: NextRequest) {
         throw new Error(`Python backend error: ${response.status}`);
       }
 
-      const data = await response.json();
-
+      const data: RawInferenceResponse = await response.json();
       // Transform Python response to match Node.js format
-      const transformedDetections = data.detections.map((d: Detection) => ({
+      const transformedDetections = data.detections.map((d) => ({
         bbox: d.bbox,
         class: d.class_name,
         confidence: d.confidence,

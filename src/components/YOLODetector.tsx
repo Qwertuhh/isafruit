@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Video, VideoOff, Zap, ZapOff, Cpu, Gpu } from "lucide-react";
-import { Detection, GPUInfo } from "@/lib/yolo/types";
+import { Detection, GPUInfo } from "@/types";
 import { drawDetections } from "@/lib/yolo/postprocessing";
 import {
   preprocessFrameWithOpenCV,
