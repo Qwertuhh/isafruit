@@ -157,3 +157,169 @@ npm run dev
 ```
 
 Navigate to the app and test object detection functionality.
+
+## Python Inference Services
+
+The project includes Python FastAPI services for GPU-accelerated inference using PyTorch and Ultralytics YOLO.
+
+### Services
+
+1. **Inference Service** (`inference/main.py`) - Port 8001
+
+   - Real-time video frame inference
+   - WebRTC support
+   - GPU acceleration with CUDA
+
+2. **Photo Detection Service** (`photo-detect/main.py`) - Port 8002
+   - Single image detection
+   - Returns annotated images with bounding boxes
+   - GPU acceleration with CUDA
+
+### Setup Python Services
+
+1. **Install Dependencies**
+
+```bash
+cd services/model
+uv sync
+```
+
+This installs:
+
+- FastAPI & Uvicorn (web server)
+- PyTorch (GPU support)
+- Ultralytics YOLO
+- OpenCV, Pillow, NumPy
+
+2. **Download YOLO Model**
+
+Ensure you have the `.pt` model file:
+
+```bash
+npm run download-model
+```
+
+3. **Configure Environment**
+
+Create `.env.local` in the project root:
+
+```bash
+PYTHON_INFERENCE_URL=http://localhost:8001
+PYTHON_PHOTO_DETECT_URL=http://localhost:8002
+```
+
+### Running Python Services
+
+**Start Inference Service:**
+
+```bash
+cd services/model/inference
+uv run main.py
+```
+
+**Start Photo Detection Service:**
+
+```bash
+cd services/model/photo-detect
+uv run main.py
+```
+
+### GPU Support
+
+The Python services automatically detect and use NVIDIA GPUs with CUDA:
+
+- **CUDA Available**: Uses GPU acceleration
+- **No CUDA**: Falls back to CPU
+
+Check GPU status:
+
+```bash
+# Test inference service
+curl http://localhost:8001/inference
+
+# Test photo-detect service
+curl http://localhost:8002/photo-detect
+```
+
+### Using Python Backend in UI
+
+1. Start the Python services (ports 8001 & 8002)
+2. Start the Next.js app: `npm run dev`
+3. In the UI, toggle **Backend** to "Python (FastAPI)"
+4. The app will route inference requests to Python services
+
+### API Endpoints
+
+**Inference Service (Port 8001)**
+
+- `GET /` - Root endpoint
+- `GET /inference` - Health check with GPU info
+- `POST /inference` - Run inference on image
+  ```json
+  {
+    "image": "base64_encoded_image",
+    "width": 640,
+    "height": 480
+  }
+  ```
+
+**Photo Detection Service (Port 8002)**
+
+- `GET /` - Root endpoint
+- `GET /photo-detect` - Health check with GPU info
+- `POST /photo-detect` - Detect and annotate image
+  ```json
+  {
+    "image": "base64_encoded_image",
+    "width": 640,
+    "height": 480
+  }
+  ```
+
+### Performance
+
+**Python Backend (GPU)**:
+
+- Faster inference with CUDA
+- Better for high-throughput scenarios
+- Native PyTorch operations
+
+**Node.js Backend (ONNX)**:
+
+- No Python runtime required
+- Easier deployment
+- Good CPU performance
+
+### Troubleshooting
+
+**"Python backend not available"**
+
+1. Check services are running:
+
+   ```bash
+   curl http://localhost:8001/inference
+   curl http://localhost:8002/photo-detect
+   ```
+
+2. Check `.env.local` configuration
+
+3. Verify Python dependencies:
+   ```bash
+   cd services/model
+   uv sync
+   ```
+
+**"CUDA not available"**
+
+- Install NVIDIA drivers and CUDA toolkit
+- Verify: `python -c "import torch; print(torch.cuda.is_available())"`
+- Services will fall back to CPU if CUDA unavailable
+
+**Port conflicts**
+
+Change ports in service files:
+
+- `inference/main.py`: Line 231 - `uvicorn.run(app, host="0.0.0.0", port=8001)`
+- `photo-detect/main.py`: Line 277 - `uvicorn.run(app, host="0.0.0.0", port=8002)`
+
+And update `.env.local` accordingly.

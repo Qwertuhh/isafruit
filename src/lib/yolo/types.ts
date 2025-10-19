@@ -21,16 +21,47 @@ export interface YOLOConfig {
 }
 
 export const FRUIT_VEGETABLE_CLASSES = [
-  'apple', 'banana', 'orange', 'broccoli', 'carrot',
-  'hot dog', 'pizza', 'donut', 'cake', 'potted plant',
-  'bottle', 'wine glass', 'cup', 'fork', 'knife',
-  'spoon', 'bowl', 'sandwich', 'person', 'chair'
+  "apple",
+  "banana",
+  "orange",
+  "broccoli",
+  "carrot",
+  "hot dog",
+  "pizza",
+  "donut",
+  "cake",
+  "potted plant",
+  "bottle",
+  "wine glass",
+  "cup",
+  "fork",
+  "knife",
+  "spoon",
+  "bowl",
+  "sandwich",
+  "person",
+  "chair",
 ];
 
 export const DEFAULT_YOLO_CONFIG: YOLOConfig = {
-  modelPath: '/models/yolo11n.onnx',
+  modelPath: "/models/yolo11n.onnx",
   inputSize: 640,
   confidenceThreshold: 0.45,
   iouThreshold: 0.45,
   maxDetections: 100,
 };
+
+export interface GPUInfo {
+  available: boolean;
+  name?: string;
+  memory?: number; // in GB
+  cudaAvailable?: boolean;
+  provider: "cuda" | "cpu";
+}
+
+export interface VideoProcessingConfig {
+  useOpenCV: boolean;
+  targetFPS: number;
+  batchSize: number;
+  gpuAcceleration: boolean;
+}

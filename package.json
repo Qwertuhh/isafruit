@@ -9,18 +9,24 @@
     "lint": "eslint",
     "download-model": "tsx scripts/download-model.ts",
     "convert-model": "cd services/model && uv run model-convertor/main.py",
-    "setup-model": "npm run download-model && npm run convert-model"
+    "setup-model": "npm run download-model && npm run convert-model",
+    "dev-py-inference": "cd services/model/inference && uv run main.py",
+    "dev-py-photo-detect": "cd services/model/photo-detect && uv run main.py",
+    "dev-py-server": "concurrently \"npm run dev-py-inference\" \"npm run dev-py-photo-detect\""
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
+    "@techstark/opencv-js": "^4.11.0-release.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.2.1",
     "lucide-react": "^0.546.0",
     "next": "15.5.6",
     "onnxruntime-node": "^1.23.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "sharp": "^0.33.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1"
   },
