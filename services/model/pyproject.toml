@@ -1,0 +1,21 @@
+[project]
+name = "model"
+version = "0.1.0"
+description = "YOLO11 Model Conversion Tool"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "textual>=6.3.0",
+    "ultralytics>=8.3.217",
+]
+
+[project.scripts]
+model-convertor = "model-convertor.main:main"
+
+[tool.poetry]
+name = "model"
+version = "0.1.0"
+description = "YOLO11 Model Conversion Tool and training script"
+authors = [
+    { name = "qwertuhh" }
+]

@@ -40,6 +40,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# model
-public/models
-public/datasets
+# model files
+public/models/*
+!public/models/.gitkeep
+public/datasets/*
+!public/datasets/.gitkeep
+
+# Model checkpoints and formats
+*.onnx
+*.pt
+*.pth
+*.bin
+*.h5
+*.tflite
+*.pb
+*.ckpt
+*.safetensors

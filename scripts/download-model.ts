@@ -11,6 +11,7 @@ const MODEL_URL =
   "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt";
 const MODELS_DIR = path.join(__dirname, "..", "public", "models");
 const MODEL_PATH = path.join(MODELS_DIR, "yolo11n.pt");
+const ONNX_MODEL_PATH = path.join(MODELS_DIR, "yolo11n.onnx");
 
 // Initialize terminal
 try {
@@ -34,29 +35,57 @@ if (!fs.existsSync(MODELS_DIR)) {
   }
 }
 
-// Check if PyTorch model already exists
-if (fs.existsSync(MODEL_PATH)) {
-  terminal.green("✅ Model already exists at: ").white(MODEL_PATH + "\n\n");
-  terminal.yellow("Do you want to download the model again? (y/N) ");
+// Check if ONNX model already exists
+if (fs.existsSync(ONNX_MODEL_PATH)) {
+  terminal
+    .yellow("⚠️  ONNX model already exists at: ")
+    .white(ONNX_MODEL_PATH + "\n");
+  terminal.yellow("Do you want to download and overwrite the model? (y/N) ");
 
   terminal.yesOrNo(
     { yes: ["y", "Y"], no: ["n", "N", "ENTER"] },
     (error, result) => {
       terminal("\n");
       if (result) {
-        startDownload();
+        checkAndDownloadPytorchModel();
       } else {
-        terminal.cyan("Model already downloaded. Run conversion next:\n");
-        terminal.white("   npm run convert-model\n\n");
+        terminal.cyan("Using existing ONNX model.\n");
+        terminal.cyan("To start the development server:\n");
+        terminal.white("   npm run dev\n\n");
         process.exit(0);
       }
     }
   );
 } else {
-  startDownload();
+  checkAndDownloadPytorchModel();
 }
 
-function startDownload() {
+function checkAndDownloadPytorchModel() {
+  // Check if PyTorch model already exists
+  if (fs.existsSync(MODEL_PATH)) {
+    terminal
+      .green("✅ PyTorch model already exists at: ")
+      .white(MODEL_PATH + "\n\n");
+    terminal.yellow("Do you want to download the model again? (y/N) ");
+
+    terminal.yesOrNo(
+      { yes: ["y", "Y"], no: ["n", "N", "ENTER"] },
+      (error, result) => {
+        terminal("\n");
+        if (result) {
+          startDownload();
+        } else {
+          terminal.cyan("Using existing PyTorch model. Run conversion next:\n");
+          terminal.white("   npm run convert-model\n\n");
+          process.exit(0);
+        }
+      }
+    );
+  } else {
+    startDownload();
+  }
+}
+async function startDownload() {
   terminal.clear();
   terminal.cyan.bold("🚀 YOLO11 Model Downloader\n\n");
   terminal.cyan("📥 Downloading YOLO11n model...\n");
@@ -64,25 +93,27 @@ function startDownload() {
   terminal.cyan("   Destination: ").white(MODEL_PATH + "\n");
   terminal.cyan("   Size: ").white("~6MB\n\n");
 
-  const file = fs.createWriteStream(MODEL_PATH);
+  // Create a unique temp file using process ID and timestamp
+  const tempPath = `${MODEL_PATH}.${process.pid}.${Date.now()}.part`;
+
+  // Ensure the directory exists
+  if (!fs.existsSync(path.dirname(tempPath))) {
+    fs.mkdirSync(path.dirname(tempPath), { recursive: true });
+  }
+
+  const file = fs.createWriteStream(tempPath);
   let downloadedBytes = 0;
 
   const progressBar = terminal.progressBar({
     width: 80,
-    title: "Downloading:",
+    title: "Downloading",
     eta: true,
     percent: true,
-    items: 1,
-    syncMode: true,
     barChar: "█",
     barHeadChar: "█",
     barStyle: terminal.brightCyan,
-    itemStyle: terminal.brightGreen,
-    titleSize: 15,
-    inline: true,
+    titleStyle: terminal.bold,
   });
-
-  const downloadStartTime = Date.now();
 
   async function downloadFile() {
     try {
@@ -100,19 +131,48 @@ function startDownload() {
 
       response.on("data", (chunk) => {
         downloadedBytes += chunk.length;
-        const progress = downloadedBytes / totalBytes;
-
-        progressBar.update({
-          progress,
-          title: "Downloading:",
-          items: 1,
-        });
+        if (totalBytes > 0) {
+          const progress = downloadedBytes / totalBytes;
+          progressBar.update(progress);
+        }
       });
 
       await pipeline(response, file);
 
+      // Close the file handle before renaming
+      await new Promise((resolve) => file.close(resolve));
+
+      // Verify file size matches expected
+      const stats = fs.statSync(tempPath);
+      if (totalBytes > 0 && stats.size !== totalBytes) {
+        throw new Error(
+          `Download incomplete: expected ${totalBytes} bytes but got ${stats.size}`
+        );
+      }
+
+      // First write to a temporary file in the same directory
+      const finalTempPath = `${MODEL_PATH}.${Date.now()}.tmp`;
+      fs.renameSync(tempPath, finalTempPath);
+
+      // Then do an atomic rename to the final destination
+      fs.renameSync(finalTempPath, MODEL_PATH);
+
       terminal("\n\n");
       terminal.green("✅ Model downloaded successfully!\n\n");
+
+      // If ONNX model exists, delete it since it's now outdated
+      if (fs.existsSync(ONNX_MODEL_PATH)) {
+        try {
+          fs.unlinkSync(ONNX_MODEL_PATH);
+          terminal.yellow(
+            "⚠️  Deleted existing ONNX model as it's now outdated.\n"
+          );
+        } catch (err) {
+          terminal
+            .red("❌ Failed to delete existing ONNX model: ")
+            .white((err as Error).message + "\n");
+        }
+      }
 
       terminal.blue("📋 Next steps:\n");
       terminal.cyan("   1. Convert model to ONNX format:\n");
@@ -122,18 +182,50 @@ function startDownload() {
 
       process.exit(0);
     } catch (err: Error | unknown) {
-      fs.unlink(MODEL_PATH, () => {}); // Delete the file async if there was an error
+      // Clean up any temporary files
+      const cleanup = (filePath: string) => {
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }
+      };
+
+      cleanup(tempPath);
+
+      // Clean up any temporary final files
+      const dir = path.dirname(MODEL_PATH);
+      const files = fs.readdirSync(dir);
+      files.forEach((file) => {
+        if (file.startsWith(path.basename(MODEL_PATH) + ".")) {
+          cleanup(path.join(dir, file));
+        }
+      });
+
       terminal("\n\n");
-      terminal.red(
-        `❌ Error downloading model: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }\n`
-      );
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      terminal.red(`❌ Error downloading model: ${errorMessage}\n`);
+
+      if (
+        errorMessage.includes("ECONNRESET") ||
+        errorMessage.includes("ETIMEDOUT")
+      ) {
+        terminal.yellow(
+          "\n⚠️  Network error occurred. Please check your internet connection.\n"
+        );
+      }
+
       terminal.cyan("\n💡 Alternative: Download manually from:\n");
       terminal.cyan("   https://github.com/ultralytics/assets/releases/\n\n");
       process.exit(1);
     }
   }
 
-  downloadFile();
+  // Add error handling for the downloadFile promise
+  downloadFile().catch((err) => {
+    terminal.red(`\n\n❌ Fatal error in download process: ${err.message}\n`);
+    process.exit(1);
+  });
 }

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "download-model": "tsx scripts/download-model.ts",
-    "convert-model": "cd scripts/model && uv run model-convertor/main.py",
+    "convert-model": "cd services/model && uv run model-convertor/main.py",
     "setup-model": "npm run download-model && npm run convert-model"
   },
   "dependencies": {
