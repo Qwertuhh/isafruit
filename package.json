@@ -12,7 +12,8 @@
     "setup-model": "npm run download-model && npm run convert-model",
     "dev-py-inference": "cd services/model/inference && uv run main.py",
     "dev-py-photo-detect": "cd services/model/photo-detect && uv run main.py",
-    "dev-py-server": "concurrently \"npm run dev-py-inference\" \"npm run dev-py-photo-detect\""
+    "dev-py-server": "concurrently \"npm run dev-py-inference\" \"npm run dev-py-photo-detect\"",
+    "prepare-data": "cd scripts/prepare-data && tsx main.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
@@ -21,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "concurrently": "^9.2.1",
+    "js-yaml": "^4.1.0",
     "lucide-react": "^0.546.0",
     "next": "15.5.6",
     "onnxruntime-node": "^1.23.0",
@@ -33,6 +35,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

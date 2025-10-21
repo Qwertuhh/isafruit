@@ -13,6 +13,8 @@ dependencies = [
     "pillow>=11.0.0",
     "opencv-python>=4.10.0",
     "numpy>=2.1.0",
+    "kagglehub>=0.3.13",
+    "kaggle>=1.7.4.5",
 ]
 
 [project.scripts]
