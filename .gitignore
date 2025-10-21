@@ -45,6 +45,11 @@ public/models/*
 !public/models/.gitkeep
 public/datasets/*
 !public/datasets/.gitkeep
+public/archive/*
+!public/datasets/.gitkeep
+
+public/data/*
+!public/data/.gitkeep
 
 # Model checkpoints and formats
 *.onnx
@@ -56,3 +61,8 @@ public/datasets/*
 *.pb
 *.ckpt
 *.safetensors
+
+
+# TODO
+TODO.md
+todo.md
