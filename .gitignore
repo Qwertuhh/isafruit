@@ -45,11 +45,10 @@ public/models/*
 !public/models/.gitkeep
 public/datasets/*
 !public/datasets/.gitkeep
+
 public/archive/*
 !public/datasets/.gitkeep
 
-public/data/*
-!public/data/.gitkeep
 
 public/raw/*
 !public/raw/.gitkeep

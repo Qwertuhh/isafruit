@@ -5,7 +5,6 @@ import { CONFIG_PATH } from "@home/config";
 
 const { terminal: term } = terminalKit;
 
-
 term.on("key", (key: string) => {
   if (key === "CTRL_C") {
     term.red("\nOperation cancelled by user\n");
