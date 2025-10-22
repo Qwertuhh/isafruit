@@ -1,4 +1,4 @@
-import { YOLOConfig } from "../types";
+import { YOLOConfig } from "@/types";
 
 const FRUIT_VEGETABLE_CLASSES = [
   "apple",
