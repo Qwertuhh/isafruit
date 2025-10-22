@@ -5,7 +5,6 @@
 
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import yaml from "js-yaml";
 import {
@@ -17,9 +16,11 @@ import {
 import { YOLO_CONFIG_PATH } from "@home/config";
 import {
   installKaggleCLI,
+  isKaggleCLIExists,
   verifyKaggleCredentials,
 } from "@home/scripts/prepare-data/steps/kaggle-cli";
 import { Config } from "@home/types";
+import { downloadDataset } from "./steps/download";
 
 term.fullscreen(true);
 term.grabInput(true);
@@ -29,42 +30,9 @@ process.on("exit", () => {
   term.processExit(0);
 });
 
-term.on("key", (key: string) => {
-  if (key === "CTRL_C") {
-    term.red("\nOperation cancelled by user\n");
-    process.exit(0);
-  }
-});
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 console.log(__dirname, __filename);
-
-/**
- * Download dataset from Kaggle
- */
-const downloadDataset = async (config: Config): Promise<void> => {
-  const { dataset, destination } = config.kaggle;
-  const destPath = path.resolve(process.cwd(), destination);
-  ensureDirectoryExists(destPath);
-
-  const done = await showSpinner("Downloading dataset...");
-  try {
-    execSync(
-      `kaggle datasets download -d ${dataset} -p ${destination} --unzip --force`,
-      {
-        stdio: "pipe",
-      }
-    );
-    done();
-    term.green("✓ Dataset downloaded successfully\n");
-  } catch (error) {
-    done();
-    term.red("❌ Dataset download failed\n");
-    term.red(`Error: ${error}\n`);
-    process.exit(1);
-  }
-};
 
 /**
  * Prepare YOLO configuration YAML
@@ -145,14 +113,19 @@ const main = async (): Promise<void> => {
 
   const config = loadConfig();
 
-  if (!verifyKaggleCredentials()) {
+  if (!verifyKaggleCredentials(term)) {
+    return term.processExit(1);
+  }
+  if (!isKaggleCLIExists()) {
     if (await promptStep("Install Dependencies")) {
-      await installKaggleCLI();
+      await installKaggleCLI(term);
     }
+  }else{
+    term.green("✓ Kaggle CLI is already installed\n");
   }
 
   if (await promptStep("Download Dataset")) {
-    await downloadDataset(config);
+    await downloadDataset(term);
   }
 
   if (await promptStep("Prepare YOLO Config")) {

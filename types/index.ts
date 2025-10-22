@@ -1,8 +1,4 @@
 type Config = {
-  kaggle: {
-    dataset: string;
-    destination: string;
-  };
   yolo: {
     data: {
       train: string;

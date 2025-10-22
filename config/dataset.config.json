@@ -1,8 +1,4 @@
 {
-  "kaggle": {
-    "dataset": "heptapod/titanic",
-    "destination": "../../public/data/raw"
-  },
   "yolo": {
     "data": {
       "train": "../../public/data/processed/images/train",

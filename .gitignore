@@ -51,6 +51,9 @@ public/archive/*
 public/data/*
 !public/data/.gitkeep
 
+public/raw/*
+!public/raw/.gitkeep
+
 # Model checkpoints and formats
 *.onnx
 *.pt

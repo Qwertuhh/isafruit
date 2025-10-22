@@ -5,6 +5,14 @@ import { CONFIG_PATH } from "@home/config";
 
 const { terminal: term } = terminalKit;
 
+
+term.on("key", (key: string) => {
+  if (key === "CTRL_C") {
+    term.red("\nOperation cancelled by user\n");
+    process.exit(0);
+  }
+});
+
 const showSpinner = async (text: string): Promise<() => void> => {
   term("\n"); // ensure spinner starts on a new line
   const spinner = await term.spinner();
