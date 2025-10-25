@@ -1,63 +1,68 @@
-from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Button, Static
-from textual.containers import Vertical
-from textual.reactive import reactive
-from ultralytics import YOLO
 import os
+import sys
+import argparse
+from pathlib import Path
+from ultralytics import YOLO
 
-# Get absolute path of app
-APP_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_YAML_PATH = os.path.join(APP_DIR, "../../../public/datasets/fruits-and-vegetables-detection/config/data.yaml")
-MODEL_PATH = os.path.join(APP_DIR, "../../../public/models/yolo11n.pt")
-EXPORT_DIR = os.path.join(APP_DIR, "../../../public/models")
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train YOLOv11 model')
+    parser.add_argument('--data', type=str, required=True, help='Path to data.yaml')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('--batch', type=int, default=16, help='Batch size')
+    parser.add_argument('--imgsz', type=int, default=640, help='Image size')
+    parser.add_argument('--model', type=str, default='yolov8n.pt', help='Model to use')
+    parser.add_argument('--output', type=str, default='runs/detect/train', help='Output directory')
+    parser.add_argument('--device', type=str, default='0', help='Device to use (e.g., 0 for GPU 0 or "cpu")')
+    parser.add_argument('--workers', type=int, default=4, help='Number of worker threads')
+    parser.add_argument('--patience', type=int, default=50, help='Early stopping patience')
+    return parser.parse_args()
 
-class ConfirmTrain(Static):
-    def compose(self) -> ComposeResult:
-        yield Static("🚀 Do you want to train the YOLOv11 model?")
-        yield Button("Yes", id="yes")
-        yield Button("No", id="no")
-
-class TrainApp(App):
-    CSS_PATH = None
-    BINDINGS = [("q", "quit", "Quit")]
-
-    training_started = reactive(False)
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Vertical(
-            ConfirmTrain(),
-            id="main"
+def train():
+    args = parse_args()
+    
+    try:
+        # Convert all paths to absolute
+        data_path = Path(args.data).absolute()
+        model_path = Path(args.model).absolute()
+        output_dir = Path(args.output).absolute()
+        
+        # Validate paths
+        if not data_path.exists():
+            print(f"Error: Data file not found at {data_path}")
+            sys.exit(1)
+            
+        if not model_path.exists():
+            print(f"Error: Model file not found at {model_path}")
+            sys.exit(1)
+        
+        # Create output directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"Using data from: {data_path}")
+        print(f"Using model: {model_path}")
+        print(f"Saving output to: {output_dir}")
+        
+        # Initialize model with absolute path
+        model = YOLO(str(model_path))
+        
+        # Train the model
+        results = model.train(
+            data=str(data_path),
+            epochs=args.epochs,
+            batch=args.batch,
+            imgsz=args.imgsz,
+            device=args.device,
+            workers=args.workers,
+            patience=args.patience,
+            project=str(output_dir),
+            exist_ok=True
         )
-        yield Footer()
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "yes":
-            self.training_started = True
-            self.query_one("#main").update(Static("🧠 Training in progress..."))
-            self.run_training()
-        elif event.button.id == "no":
-            self.exit("Training cancelled by user.")
-
-    def run_training(self):
-        try:
-            model = YOLO(MODEL_PATH)
-            model.train(data=DATA_YAML_PATH, epochs=50, imgsz=640)
-            self.query_one("#main").update(Static("✅ Training complete! Exporting model..."))
-            model.export(format="pt")
-            self.query_one("#main").update(Static(f"🎉 Model exported to {EXPORT_DIR}/best.pt"))
-        except Exception as e:
-            self.query_one("#main").update(Static(f"❌ Error: {e}"))
+        
+        print(f"\n✅ Training completed. Results saved to {output_dir}")
+        return 0
+    except Exception as e:
+        print(f"\n❌ Error during training: {str(e)}")
+        return 1
 
 if __name__ == "__main__":
-    os.makedirs(os.path.dirname(DATA_YAML_PATH), exist_ok=True)
-    # Example .yaml file creation
-    if not os.path.exists(DATA_YAML_PATH):
-        with open(DATA_YAML_PATH, "w") as f:
-            f.write("""\
-train: DATASET/IMAGES/TRAIN
-val: DATASET/IMAGES/VAL
-nc: 3
-names: ['navel', 'blood_orange', 'mandarin']
-""")
-    TrainApp().run()
+    sys.exit(train())

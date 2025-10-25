@@ -15,7 +15,9 @@ import {
   downloadDataset,
   prepareDataset,
   prepareConfigFile,
+  prepareModel,
 } from "@home/scripts/prepare-data/steps";
+import { DATASETS_DATA_DESTINATION, DATASETS_NAME, MODEL_DATA_DESTINATION } from "@home/config";
 
 // Configure terminal with scrollback
 term.grabInput(true);
@@ -74,8 +76,13 @@ const main = async (): Promise<void> => {
   //   await prepareDataset(term);
   // }
 
-  if (await promptStep("Prepare YOLO Config")) {
-    await prepareConfigFile(term);
+  // if (await promptStep("Prepare YOLO Config")) {
+  //   await prepareConfigFile(term);
+  // }
+  if (await promptStep("Train Model")) {
+    const datasetDir = path.join(DATASETS_DATA_DESTINATION, DATASETS_NAME[1]);
+    const outputDir = path.join(MODEL_DATA_DESTINATION, "pmodel");
+    await prepareModel(datasetDir, outputDir, term);
   }
 
   term.blue.bold("\n=== All Tasks Completed ===\n");

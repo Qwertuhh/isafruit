@@ -316,10 +316,112 @@ async function prepareDataset(term: Terminal): Promise<boolean> {
   }
 }
 
+async function validateDatasetStructure(datasetPath: string, term: Terminal): Promise<boolean> {
+  try {
+    term.cyan("\nValidating dataset structure...\n");
+    
+    const requiredDirs = [
+      'train',
+      'train/fruit',
+      'train/vegetable',
+      'validation',
+      'validation/fruit',
+      'validation/vegetable',
+      'test',
+      'test/fruit',
+      'test/vegetable'
+    ];
+
+    // Check if all required directories exist
+    for (const dir of requiredDirs) {
+      const fullPath = path.join(datasetPath, dir);
+      try {
+        await fs.access(fullPath);
+        term.green(`✓ Found directory: ${dir}\n`);
+      } catch {
+        term.yellow(`⚠️  Creating missing directory: ${dir}\n`);
+        await fs.mkdir(fullPath, { recursive: true });
+      }
+    }
+
+    // Check if there are files in train directory
+    const trainFruitPath = path.join(datasetPath, 'train/fruit');
+    const trainVegPath = path.join(datasetPath, 'train/vegetable');
+    const valFruitPath = path.join(datasetPath, 'validation/fruit');
+    const valVegPath = path.join(datasetPath, 'validation/vegetable');
+
+    const [trainFruitFiles, trainVegFiles] = await Promise.all([
+      fs.readdir(trainFruitPath),
+      fs.readdir(trainVegPath)
+    ]);
+
+    // If validation directories are empty, move some files from train to val
+    const valFruitFiles = await fs.readdir(valFruitPath).catch(() => []);
+    const valVegFiles = await fs.readdir(valVegPath).catch(() => []);
+
+    if (valFruitFiles.length === 0 && trainFruitFiles.length > 0) {
+      term.cyan("\nCreating validation set for fruits...\n");
+      // Move 20% of training fruits to validation
+      const numToMove = Math.ceil(trainFruitFiles.length * 0.2);
+      for (let i = 0; i < numToMove; i++) {
+        const file = trainFruitFiles[i];
+        if (file) {
+          await fs.rename(
+            path.join(trainFruitPath, file),
+            path.join(valFruitPath, file)
+          );
+        }
+      }
+    }
+
+    if (valVegFiles.length === 0 && trainVegFiles.length > 0) {
+      term.cyan("\nCreating validation set for vegetables...\n");
+      // Move 20% of training vegetables to validation
+      const numToMove = Math.ceil(trainVegFiles.length * 0.2);
+      for (let i = 0; i < numToMove; i++) {
+        const file = trainVegFiles[i];
+        if (file) {
+          await fs.rename(
+            path.join(trainVegPath, file),
+            path.join(valVegPath, file)
+          );
+        }
+      }
+    }
+
+    // Update data.yaml file
+    const dataYamlPath = path.join(datasetPath, 'config', 'data.yaml');
+    try {
+      const dataYaml = `# Train/validation/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list[path/to/imgs1, path/to/imgs2, ..]
+path: ${datasetPath.replace(/\\/g, '/')}  # dataset root dir
+train: train  # train images (relative to 'path') 128 images
+val: validation  # val images (relative to 'path') 128 images
+test: test  # test images (optional)
+
+# Classes
+names:
+  0: fruit
+  1: vegetable`;
+      
+      await fs.writeFile(dataYamlPath, dataYaml);
+      term.green(`✓ Updated data.yaml configuration\n`);
+    } catch (error) {
+      term.yellow(`⚠️  Could not update data.yaml: ${error}\n`);
+    }
+
+    term.green("\n✓ Dataset structure validated and prepared successfully\n");
+    return true;
+  } catch (error) {
+    term.red(`❌ Error validating dataset structure: ${error}\n`);
+    return false;
+  }
+}
+
 export {
   isRawDataExists,
   prepareDatasetsDir,
   prepareDatasetOne,
   prepareDatasetTwo,
   prepareDataset,
+  validateDatasetStructure,
 };
