@@ -3,7 +3,6 @@ import {
   DATASETS_DATA_DESTINATION,
   DATASETS_NAME,
 } from "@home/config";
-import type { ProgressBarController } from "terminal-kit/Terminal";
 import fs from "fs/promises";
 import path from "path";
 import { Terminal } from "terminal-kit";
@@ -231,7 +230,7 @@ async function prepareDatasetTwo(term: Terminal): Promise<boolean> {
             targetDir,
             split,
             targetCategory,
-            newName
+            newName 
           );
 
           await fs.copyFile(sourceFile, targetFile);

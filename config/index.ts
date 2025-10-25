@@ -14,6 +14,9 @@ const RAW_DATA_DESTINATION = "../../public/raw/data";
 const DATASETS_DATA_DESTINATION = "../../public/datasets/"; 
 const DATASETS_NAME = ["fruits-and-vegetables", "fruits-or-vegetables"]; 
 
+//* Model Config
+const MODEL_DATA_DESTINATION = "../../public/models/";
+const BASE_MODEL = "yolo11n";
 
 export {
   YOLO_CONFIG_PATH,
@@ -23,4 +26,6 @@ export {
   RAW_DATA_DESTINATION,
   DATASETS_DATA_DESTINATION,
   DATASETS_NAME,
+  MODEL_DATA_DESTINATION,
+  BASE_MODEL,
 };

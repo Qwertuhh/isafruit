@@ -14,6 +14,7 @@ import {
   verifyKaggleCredentials,
   downloadDataset,
   prepareDataset,
+  prepareConfigFile,
 } from "@home/scripts/prepare-data/steps";
 
 // Configure terminal with scrollback
@@ -65,17 +66,17 @@ const main = async (): Promise<void> => {
     term.green("✓ Kaggle CLI is already installed\n");
   }
 
-  if (await promptStep("Download Dataset")) {
-    await downloadDataset(term);
-  }
-
-  if (await promptStep("Prepare Datasets")) {
-    await prepareDataset(term);
-  }
-
-  // if (await promptStep("Prepare YOLO Config")) {
-  //   await prepareYoloConfig(config);
+  // if (await promptStep("Download Dataset")) {
+  //   await downloadDataset(term);
   // }
+
+  // if (await promptStep("Prepare Datasets")) {
+  //   await prepareDataset(term);
+  // }
+
+  if (await promptStep("Prepare YOLO Config")) {
+    await prepareConfigFile(term);
+  }
 
   term.blue.bold("\n=== All Tasks Completed ===\n");
   term.green("✓ Operation finished successfully\n");

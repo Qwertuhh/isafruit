@@ -10,4 +10,12 @@ type Config = {
   };
 };
 
-export type { Config };
+
+interface DataYamlConfig {
+  train: string;
+  val: string;
+  nc: number;
+  names: string[];
+}
+
+export type { Config, DataYamlConfig };
