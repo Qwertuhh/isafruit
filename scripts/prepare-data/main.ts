@@ -20,9 +20,9 @@ import {
 import { DATASETS_DATA_DESTINATION, DATASETS_NAME, MODEL_DATA_DESTINATION } from "@home/config";
 
 // Configure terminal with scrollback
-term.grabInput(true);
-term.fullscreen(true);
-term.hideCursor(true);
+term.clear();
+term.grabInput({ mouse: "button" });
+term.hideCursor();
 
 
 process.on("exit", () => {
@@ -81,7 +81,7 @@ const main = async (): Promise<void> => {
   // }
   if (await promptStep("Train Model")) {
     const datasetDir = path.join(DATASETS_DATA_DESTINATION, DATASETS_NAME[1]);
-    const outputDir = path.join(MODEL_DATA_DESTINATION, "pmodel");
+    const outputDir = path.join(MODEL_DATA_DESTINATION, "processed");
     await prepareModel(datasetDir, outputDir, term);
   }
 
