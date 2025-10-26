@@ -92,9 +92,9 @@ function RoboflowOpenCVAnalyzer() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Fruit Ripeness Detector (OpenCV.js)</CardTitle>
+          <CardTitle>Fruit Ripeness Detector</CardTitle>
           <CardDescription>
-            Upload an image and visualize detections drawn with OpenCV.js.
+            Upload an image and analyze the health of the fruit.
           </CardDescription>
         </CardHeader>
 
