@@ -1,21 +1,45 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Montserrat, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Main font for body text
+const montserrat = Montserrat({
   subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Monospace font for code
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+// Display font for headings
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Real-Time Video Inference | YOLO Detection",
-  description: "Next.js app with TypeScript backend for real-time video inference using WebRTC and YOLO detection",
+  icons: {
+    icon: [
+      { url: '/logo.svg' },
+    ],
+    shortcut: [
+      { url: '/logo.svg' },
+    ],
+    apple: [
+      { url: '/logo.svg' },
+    ],
+  },
+  manifest: '/site.webmanifest',
+  description:
+    "Next.js app with TypeScript backend for real-time video inference using WebRTC and YOLO detection",
 };
 
 export default function RootLayout({
@@ -25,10 +49,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Toaster richColors position="top-right"/>
+      <head>
+        <link rel="icon" href="/logo-bg.svg" type="image/svg+xml" />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${montserrat.variable} ${jetBrainsMono.variable} ${playfairDisplay.variable}`}
       >
+        <Toaster richColors position="top-center" />
         {children}
       </body>
     </html>

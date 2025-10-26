@@ -21,7 +21,7 @@
         "icon": "browser",
         "color": "terminal.ansiGreen",
         "commands": [
-          "cd frontend; npm run dev"
+          "npm run dev"
         ]
       },
       {

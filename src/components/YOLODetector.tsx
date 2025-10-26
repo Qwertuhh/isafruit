@@ -339,7 +339,7 @@ export function YOLODetector() {
         }}
       />
 
-      <div className="flex flex-col gap-4 p-6 border rounded-lg bg-card">
+      <div className="flex flex-col gap-4 p-6 rounded-lg bg-card">
         {/* Video and Canvas Container */}
         <div className="relative aspect-video bg-black rounded-md overflow-hidden">
           <video
