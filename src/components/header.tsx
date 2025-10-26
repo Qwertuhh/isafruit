@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Home, Video, Camera } from "lucide-react";
+import { Menu, X, Home, Video, Camera, Heart} from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import Logo from "./logo";
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "Video", href: "/classification/video", icon: Video },
   { name: "Photo", href: "/classification/photo", icon: Camera },
+  { name: "Health Analyzer", href: "/health-analyzer", icon: Heart },
 ];
 
 function Header() {

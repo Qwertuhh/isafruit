@@ -1,10 +1,38 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { Camera, Image as ImageIcon } from "lucide-react";
+import { Camera, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/logo";
+import { PhotoCapture } from "@/components/PhotoCapture";
+import { useState } from "react";
 
 export default function Home() {
+  const [showCapture, setShowCapture] = useState(false);
+
+  const handleBackToHome = () => {
+    setShowCapture(false);
+  };
+
+  if (showCapture) {
+    return (
+      <main className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Button
+            variant="ghost"
+            onClick={handleBackToHome}
+            className="mb-6 flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+          <div className="max-w-4xl mx-auto">
+            <PhotoCapture />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] px-4 py-8 sm:py-12 md:py-16">
@@ -22,23 +50,34 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
+            <Button 
+              size="lg" 
+              className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
+              onClick={() => setShowCapture(true)}
+            >
+              <Camera className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+              <span>Capture Photo</span>
+            </Button>
             <Link href="/classification/video" className="w-full sm:w-auto flex-1 sm:flex-none">
               <Button 
+                variant="outline"
                 size="lg" 
                 className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
               >
-                <Camera className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
                 <span>Video Detection</span>
               </Button>
             </Link>
-            <Link href="/classification/photo" className="w-full sm:w-auto flex-1 sm:flex-none">
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
+            <Link href="/health-analyzer" className="w-full">
               <Button 
                 variant="outline" 
                 size="lg"
                 className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
               >
                 <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                <span>Photo Upload</span>
+                <span>Health Analyzer</span>
               </Button>
             </Link>
           </div>

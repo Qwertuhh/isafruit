@@ -55,6 +55,25 @@ interface VideoProcessingConfig {
   gpuAcceleration: boolean;
 }
 
+interface RoboflowDetection {
+  class: string;
+  confidence: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface RoboflowResponse {
+  predictions?: RoboflowDetection[];
+  time?: number;
+  image?: {
+    width: number;
+    height: number;
+  };
+  // Add other properties as needed based on the actual API response
+}
+
 export type {
   Detection,
   InferenceResult,
@@ -63,4 +82,6 @@ export type {
   VideoProcessingConfig,
   RawInferenceResponse,
   RawDetection,
+  RoboflowDetection,
+  RoboflowResponse
 };
