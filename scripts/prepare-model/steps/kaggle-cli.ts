@@ -9,13 +9,13 @@ import { Terminal } from "terminal-kit";
  */
 function verifyKaggleCredentials(term: Terminal): boolean {
   if (!fs.existsSync(KAGGLE_CREDENTIALS_PATH)) {
-    term.red("\n❌ Kaggle credentials not found.\n");
+    term.red("\nKaggle credentials not found.\n");
     term(`Please create a kaggle.json file in ${KAGGLE_CREDENTIALS_PATH}\n`);
     term("Get your API credentials from: ");
     term.underline("https://www.kaggle.com/account\n");
     return false;
   }
-  term.green("✓ Kaggle credentials found\n");
+  term.green("Kaggle credentials found\n");
   return true;
 }
 
@@ -38,17 +38,17 @@ async function installKaggleCLI(term: Terminal): Promise<void> {
 
   if (isKaggleCLIExists()) {
     done();
-    term.green("✓ Kaggle CLI is already installed\n");
+    term.green("Kaggle CLI is already installed\n");
     return;
   }
   const installDone = await showSpinner("Installing Kaggle CLI...");
   try {
     execSync("uv tool install kaggle", { stdio: "inherit" });
     installDone();
-    term.green("✓ Kaggle CLI installed successfully\n");
+    term.green("Kaggle CLI installed successfully\n");
   } catch (error) {
     installDone();
-    term.red("❌ Failed to install Kaggle CLI\n");
+    term.red("Failed to install Kaggle CLI\n");
     term.red("Please install it manually using: uv tool install kaggle\n");
     term.red(`Error: ${error}\n`);
     process.exit(1);

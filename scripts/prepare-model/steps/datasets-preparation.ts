@@ -119,10 +119,10 @@ async function prepareDatasetsDir(term: Terminal): Promise<boolean> {
       }
     }
 
-    term.green("✓ Dataset directories prepared successfully\n");
+    term.green("Dataset directories prepared successfully\n");
     return true;
   } catch (error) {
-    term.red("❌ Error preparing dataset directories:\n", error);
+    term.red("Error preparing dataset directories:\n", error);
     return false;
   }
 }
@@ -136,7 +136,7 @@ async function prepareDatasetOne(term: Terminal): Promise<boolean> {
     term.clear();
     term.moveTo(1, 1);
     term.blue.bold("=== Dataset One Preparation ===\n\n");
-    term.cyan(`📂 Dataset Name: ${DATASETS_NAME[0]}\n`);
+    term.cyan(`Dataset Name: ${DATASETS_NAME[0]}\n`);
 
     const sourceDir = RAW_DATA_DESTINATION;
     const targetDir = path.join(DATASETS_DATA_DESTINATION, DATASETS_NAME[0]);
@@ -149,7 +149,7 @@ async function prepareDatasetOne(term: Terminal): Promise<boolean> {
     term.blue.bold("──────────────────────────────────────────────\n\n");
     return true;
   } catch (error) {
-    term.red("❌ Error preparing dataset one:\n", error);
+    term.red("Error preparing dataset one:\n", error);
     return false;
   }
 }
@@ -238,8 +238,8 @@ async function prepareDatasetTwo(term: Terminal): Promise<boolean> {
 
           if (filesProcessed % 10 === 0 || filesProcessed === totalFiles) {
             const status = filesProcessed === totalFiles 
-              ? '✅ Copied successfully!'
-              : `📂 Processing: ${path.basename(path.dirname(sourceFile))}...`;
+              ? 'Copied successfully!'
+              : `Processing: ${path.basename(path.dirname(sourceFile))}...`;
               
             progressBar.update({
               progress: filesProcessed / totalFiles,
@@ -284,11 +284,11 @@ async function prepareDatasetTwo(term: Terminal): Promise<boolean> {
     );
 
     term("\n");
-    term.green.bold("✓ Dataset Two organization completed successfully!\n");
+    term.green.bold("Dataset Two organization completed successfully!\n");
 
     return true;
   } catch (error) {
-    term.red.bold("\n✗ Error preparing dataset two:\n", error);
+    term.red.bold("\nError preparing dataset two:\n", error);
     return false;
   }
 }
@@ -337,9 +337,9 @@ async function validateDatasetStructure(datasetPath: string, term: Terminal): Pr
       const fullPath = path.join(datasetPath, dir);
       try {
         await fs.access(fullPath);
-        term.green(`✓ Found directory: ${dir}\n`);
+        term.green(`Found directory: ${dir}\n`);
       } catch {
-        term.yellow(`⚠️  Creating missing directory: ${dir}\n`);
+        term.yellow(`Creating missing directory: ${dir}\n`);
         await fs.mkdir(fullPath, { recursive: true });
       }
     }
@@ -404,15 +404,15 @@ names:
   1: vegetable`;
       
       await fs.writeFile(dataYamlPath, dataYaml);
-      term.green(`✓ Updated data.yaml configuration\n`);
+      term.green(`Updated data.yaml configuration\n`);
     } catch (error) {
-      term.yellow(`⚠️  Could not update data.yaml: ${error}\n`);
+      term.yellow(`Could not update data.yaml: ${error}\n`);
     }
 
-    term.green("\n✓ Dataset structure validated and prepared successfully\n");
+    term.green("\nDataset structure validated and prepared successfully\n");
     return true;
   } catch (error) {
-    term.red(`❌ Error validating dataset structure: ${error}\n`);
+    term.red(`Error validating dataset structure: ${error}\n`);
     return false;
   }
 }

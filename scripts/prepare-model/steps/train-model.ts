@@ -30,7 +30,7 @@ async function trainModel(
 ): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
         try {
-            term.cyan("🚀 Starting model training...\n");
+            term.cyan("Starting model training...\n");
 
             // Convert all paths to absolute
             const scriptPath = path.resolve(
@@ -48,7 +48,7 @@ async function trainModel(
                 await fs.access(dataYamlPath);
                 if (options.model) await fs.access(modelPath);
             } catch (error) {
-                term.red(`❌ Error: ${error}\n`);
+                term.red(`Error: ${error}\n`);
                 return reject(error);
             }
 
@@ -82,20 +82,20 @@ async function trainModel(
 
             pythonProcess.on("close", (code) => {
                 if (code === 0) {
-                    term.green("\n✅ Model training completed successfully!\n");
+                    term.green("Model training completed successfully!\n");
                     resolve(true);
                 } else {
-                    term.red(`\n❌ Model training failed with code ${code}\n`);
+                    term.red(`Model training failed with code ${code}\n`);
                     resolve(false);
                 }
             });
 
             pythonProcess.on("error", (error) => {
-                term.red(`\n❌ Error during model training: ${error.message}\n`);
+                term.red(`Error during model training: ${error.message}\n`);
                 resolve(false);
             });
         } catch (error) {
-            term.red(`\n❌ Unexpected error during model training: ${error}\n`);
+            term.red(`Unexpected error during model training: ${error}\n`);
             resolve(false);
         }
     });
@@ -128,12 +128,12 @@ async function prepareModel(
             const isValid = await validateDatasetStructure(datasetDir, term);
             
             if (!isValid) {
-                term.red("❌ Error: Dataset validation failed. Please check the dataset structure.\n");
+                term.red("Error: Dataset validation failed. Please check the dataset structure.\n");
                 return false;
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to validate dataset structure';
-            term.red(`❌ Error: ${errorMessage}\n`);
+            term.red(`Error: ${errorMessage}\n`);
             return false;
         }
         
@@ -152,7 +152,7 @@ async function prepareModel(
 
         return await trainModel(options, term);
     } catch (error) {
-        term.red(`❌ Error in prepareModel: ${error instanceof Error ? error.message : String(error)}\n`);
+        term.red(`Error in prepareModel: ${error instanceof Error ? error.message : String(error)}\n`);
         return false;
     }
 }

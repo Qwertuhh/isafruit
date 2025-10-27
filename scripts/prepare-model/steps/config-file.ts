@@ -78,7 +78,7 @@ async function generateDataYaml(
     const classNames = await getClassNames(datasetDir);
     
     if (classNames.length === 0) {
-      term.yellow("⚠️ No class directories found in the train folder. Using default classes.\n");
+      term.yellow("No class directories found in the train folder. Using default classes.\n");
       classNames.push('fruit', 'vegetable');
     } else {
       term.cyan(`Found ${classNames.length} classes: ${classNames.join(', ')}\n`);
@@ -87,10 +87,10 @@ async function generateDataYaml(
     // Create the data.yaml file with absolute paths
     await createDataYaml(trainDir, valDir, outputPath, classNames);
 
-    term.green(`✅ data.yaml generated successfully at: ${outputPath}\n`);
+    term.green(`data.yaml generated successfully at: ${outputPath}\n`);
     return true;
   } catch (error) {
-    term.red(`❌ Error generating data.yaml: ${error}\n`);
+    term.red(`Error generating data.yaml: ${error}\n`);
     return false;
   }
 }
@@ -114,13 +114,13 @@ async function prepareConfigFile(term: Terminal): Promise<boolean> {
       
       // Log the absolute path of the generated config file
       const configFilePath = path.join(outputConfigPath, 'data.yaml');
-      term.green(`✅ Config generated at: ${path.resolve(configFilePath)}\n`);
+      term.green(`Config generated at: ${path.resolve(configFilePath)}\n`);
     }
     
-    term.green("\n✅ All config files prepared successfully\n");
+    term.green("\nAll config files prepared successfully\n");
     return true;
   } catch (error) {
-    term.red(`❌ Error preparing config file: ${error}\n`);
+    term.red(`Error preparing config file: ${error}\n`);
     if (error instanceof Error) {
       term.red(`Error details: ${error.stack}\n`);
     }

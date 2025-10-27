@@ -19,11 +19,11 @@ try {
 } catch (e) {
   console.error("Failed to clear terminal: ", e);
 }
-terminal.cyan.bold("🚀 YOLO11 Model Downloader\n");
+terminal.cyan.bold("YOLO11 Model Downloader\n");
 
 // Create models directory if it doesn't exist
 if (!fs.existsSync(MODELS_DIR)) {
-  terminal.cyan("📁 Creating models directory... ");
+  terminal.cyan("Creating models directory... ");
   try {
     fs.mkdirSync(MODELS_DIR, { recursive: true });
     terminal.green("Done!\n");
@@ -38,7 +38,7 @@ if (!fs.existsSync(MODELS_DIR)) {
 // Check if ONNX model already exists
 if (fs.existsSync(ONNX_MODEL_PATH)) {
   terminal
-    .yellow("⚠️  ONNX model already exists at: ")
+    .yellow("ONNX model already exists at: ")
     .white(ONNX_MODEL_PATH + "\n");
   terminal.yellow("Do you want to download and overwrite the model? (y/N) ");
 
