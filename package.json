@@ -9,11 +9,10 @@
     "lint": "eslint",
     "download-model": "tsx scripts/download-model.ts",
     "convert-model": "cd services/model && uv run model-convertor/main.py",
-    "setup-model": "npm run download-model && npm run convert-model",
     "dev-py-inference": "cd services/model/inference && uv run main.py",
     "dev-py-photo-detect": "cd services/model/photo-detect && uv run main.py",
     "dev-py-server": "concurrently \"npm run dev-py-inference\" \"npm run dev-py-photo-detect\"",
-    "prepare-data": "cd scripts/prepare-data && tsx main.ts"
+    "prepare-model": "cd scripts/prepare-model && tsx main.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

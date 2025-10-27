@@ -188,7 +188,7 @@ async function startDownload() {
           try {
             fs.unlinkSync(filePath);
           } catch (e) {
-            // Ignore cleanup errors
+            console.error("Failed to delete temporary file:", e);
           }
         }
       };
