@@ -11,7 +11,7 @@ const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "Video", href: "/classification/video", icon: Video },
   { name: "Photo", href: "/classification/photo", icon: Camera },
-  { name: "Health Analyzer", href: "/health-analyzer", icon: Heart },
+  { name: "Health Analyzer", href: "/classification/health-analyzer", icon: Heart },
 ];
 
 function Header() {

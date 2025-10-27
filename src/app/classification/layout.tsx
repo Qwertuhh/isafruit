@@ -1,18 +1,29 @@
 "use client";
-import { Header } from "@/components/layout/header";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 interface ClassificationLayoutProps {
   children: React.ReactNode;
 }
 function ClassificationLayout({ children }: ClassificationLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20">
-        {/* Add padding-top to account for fixed header */}
-        <div className="container mx-auto px-4 py-6 max-w-5xl">{children}</div>
-      </main>
-    </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

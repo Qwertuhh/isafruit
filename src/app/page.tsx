@@ -73,7 +73,7 @@ export default function Home() {
                 <span>Video Detection</span>
               </Button>
             </Link>
-            <Link href="/health-analyzer" className="w-full">
+            <Link href="/classification/health-analyzer" className="w-full">
               <Button
                 variant="outline"
                 size="lg"

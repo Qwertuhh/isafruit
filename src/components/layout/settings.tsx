@@ -175,7 +175,7 @@ function Settings({ children, currentBackendRef }: SettingsProps) {
                 {lastCheckStatus !== null && (
                   <span
                     className={`ml-2 text-xs self-center ${
-                      lastCheckStatus ? "text-green-500" : "text-amber-500"
+                      lastCheckStatus ? "text-green-700" : "text-amber-700"
                     }`}
                   >
                     {lastCheckStatus ? "Available" : "Not Available"}
