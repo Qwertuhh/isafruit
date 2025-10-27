@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { Button } from "@/components/ui/button";
 import { Camera, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -39,7 +39,10 @@ export default function Home() {
         <div className="w-full max-w-3xl text-center space-y-6 sm:space-y-8 animate-fade-in px-2">
           <div className="space-y-3 sm:space-y-4">
             <div className="flex justify-center">
-              <Logo size={100} className="drop-shadow-md sm:size-28 md:size-32" />
+              <Logo
+                size={100}
+                className="drop-shadow-md sm:size-28 md:size-32"
+              />
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent font-display">
               Fruit & Vegetable Detector
@@ -49,30 +52,30 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
-            <Button 
-              size="lg" 
+          <div className="flex flex-col gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
+            <Button
+              size="lg"
               className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
               onClick={() => setShowCapture(true)}
             >
               <Camera className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
               <span>Capture Photo</span>
             </Button>
-            <Link href="/classification/video" className="w-full sm:w-auto flex-1 sm:flex-none">
-              <Button 
+            <Link
+              href="/classification/video"
+              className="w-full sm:w-auto flex-1 sm:flex-none"
+            >
+              <Button
                 variant="outline"
-                size="lg" 
+                size="lg"
                 className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
               >
                 <span>Video Detection</span>
               </Button>
             </Link>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
             <Link href="/health-analyzer" className="w-full">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="lg"
                 className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
               >
