@@ -1,5 +1,5 @@
 "use client";
-import { Header } from "@/components/header";
+import { Header } from "@/components/layout/header";
 
 interface ClassificationLayoutProps {
   children: React.ReactNode;
@@ -10,9 +10,7 @@ function ClassificationLayout({ children }: ClassificationLayoutProps) {
       <Header />
       <main className="flex-1 pt-20">
         {/* Add padding-top to account for fixed header */}
-        <div className="container mx-auto px-4 py-6 max-w-5xl">
-          {children}
-        </div>
+        <div className="container mx-auto px-4 py-6 max-w-5xl">{children}</div>
       </main>
     </div>
   );

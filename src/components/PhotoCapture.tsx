@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useServerStore } from "@/stores/serverStore";
 import {
   Select,
   SelectContent,
@@ -16,10 +17,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Video, VideoOff, Camera, Loader2, Download } from "lucide-react";
+import {
+  Video,
+  VideoOff,
+  Camera,
+  Loader2,
+  Download,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Detection } from "@/types";
 import Image from "next/image";
+import { BackendType } from "@/types/store";
+import Settings from "@/components/layout/settings";
 
 interface DeviceInfo {
   deviceId: string;
@@ -34,13 +44,15 @@ export function PhotoCapture() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [inferenceTime, setInferenceTime] = useState(0);
-  const [usePythonBackend, setUsePythonBackend] = useState(false);
-  const [pythonBackendAvailable, setPythonBackendAvailable] = useState(false);
+  const { currentBackend, setCurrentBackend } = useServerStore();
+  const usePython = currentBackend === BackendType.PYTHON;
+
   const toastId = useRef<string | number>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const currentBackendRef = useRef<BackendType>(currentBackend);
 
   // Fetch available cameras
   const getVideoDevices = useCallback(async () => {
@@ -65,10 +77,10 @@ export function PhotoCapture() {
   // Start stream
   const startStream = async () => {
     if (!selectedDevice || !videoRef.current) return false;
-    
+
     // Stop any existing stream first
     stopStream();
-    
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -77,29 +89,31 @@ export function PhotoCapture() {
           height: { ideal: 720 },
         },
       });
-      
+
       // Set the new stream
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
-      
+
       // Wait for the video to be ready
       await new Promise((resolve, reject) => {
-        if (!videoRef.current) return reject('Video ref not available');
-        
+        if (!videoRef.current) return reject("Video ref not available");
+
         const onLoaded = () => {
-          videoRef.current?.removeEventListener('loadedmetadata', onLoaded);
+          videoRef.current?.removeEventListener("loadedmetadata", onLoaded);
           resolve(true);
         };
-        
-        videoRef.current.addEventListener('loadedmetadata', onLoaded);
+
+        videoRef.current.addEventListener("loadedmetadata", onLoaded);
         videoRef.current.play().catch(reject);
       });
-      
+
       setIsStreamActive(true);
       return true;
     } catch (err) {
       console.error("Error starting stream:", err);
-      toast.error("Failed to start video stream. Please check camera permissions.");
+      toast.error(
+        "Failed to start video stream. Please check camera permissions."
+      );
       return false;
     }
   };
@@ -130,7 +144,7 @@ export function PhotoCapture() {
       toastId.current = toast.loading("Processing image...");
       setIsProcessing(true);
 
-      const apiUrl = usePythonBackend
+      const apiUrl = usePython
         ? "/api/photo-detect?usePython=true"
         : "/api/photo-detect";
 
@@ -150,10 +164,9 @@ export function PhotoCapture() {
         setDetections(result.detections);
         setAnnotatedImage(result.annotatedImage);
         setInferenceTime(result.inferenceTime);
-        toast.success(
-          `Detected object(s) in ${result.inferenceTime}ms`,
-          { id: toastId.current }
-        );
+        toast.success(`Detected object(s) in ${result.inferenceTime}ms`, {
+          id: toastId.current,
+        });
       }
 
       // Replace live video with image
@@ -172,54 +185,61 @@ export function PhotoCapture() {
     setAnnotatedImage(null);
     setDetections([]);
     // Ensure we have a small delay to allow state to update before restarting stream
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     await startStream();
   };
+
+  useEffect(() => {
+    if (!annotatedImage && !isStreamActive) return;
+
+    toast.info(`Backend changed to ${currentBackend}`, {
+      description: "Reinitializing camera for the new backend...",
+    });
+
+    // Reset detections and images
+    setAnnotatedImage(null);
+    setDetections([]);
+
+    // Restart stream if it was active before backend switch
+    if (isStreamActive) {
+      stopStream();
+      setTimeout(startStream, 300);
+    }
+  }, [currentBackend]);
 
   // Initialize
   useEffect(() => {
     getVideoDevices();
-    return () => stopStream();
+    return () => {
+      stopStream();
+      if (toastId.current) {
+        toast.dismiss(toastId.current);
+        toastId.current = 0;
+      }
+    };
   }, [getVideoDevices]);
 
-  // Check Python backend
-  useEffect(() => {
-    fetch("/api/photo-detect?usePython=true")
-      .then((r) => {
-        if (r.ok) setPythonBackendAvailable(true);
-      })
-      .catch(() => setPythonBackendAvailable(false));
-  }, []);
+  // Initial backend check is now handled by serverStore
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Photo Detection</CardTitle>
+    
         <CardDescription>
           {annotatedImage
             ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
             : "Start your camera and capture a photo"}
         </CardDescription>
-      </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Backend toggle */}
-        <div className="flex items-center gap-4 px-2 py-2 bg-muted/50 rounded-md">
-          <label className="text-sm font-medium" htmlFor="usePythonPhoto">
-            Backend:
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="usePythonPhoto"
-              type="checkbox"
-              checked={usePythonBackend}
-              onChange={(e) => setUsePythonBackend(e.target.checked)}
-              className="w-4 h-4"
-              disabled={!pythonBackendAvailable || isProcessing}
-            />
-            <span className="text-sm font-medium">
-              {usePythonBackend ? "Python (FastAPI)" : "Node.js (ONNX)"}
-            </span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md justify-between">
+          <p className="text-sm font-medium flex">
+            Backend -
+          <span className="mx-1 font-semibold">{currentBackend}</span>
+          </p>
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <Settings currentBackendRef={currentBackendRef}>
+              <SettingsIcon className="h-4 w-4" />
+            </Settings>
           </div>
         </div>
 
@@ -316,7 +336,7 @@ export function PhotoCapture() {
 
         {/* Detection list (overlay under image) */}
         {detections.length > 0 && annotatedImage && (
-          <div className="border-t pt-3">
+          <div className="border pt-3">
             <h3 className="text-sm font-semibold mb-2">Detected Objects:</h3>
             <div className="space-y-1">
               {detections.map((d, i) => (

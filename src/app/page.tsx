@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Camera, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import Logo from "@/components/logo";
+import Logo from "@/components/layout/logo";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { useState } from "react";
 

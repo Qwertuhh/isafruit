@@ -141,6 +141,9 @@ def preprocess_image(base64_image: str) -> np.ndarray:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to preprocess image: {str(e)}")
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 @app.post("/inference", response_model=InferenceResponse)
 async def inference(request: InferenceRequest):

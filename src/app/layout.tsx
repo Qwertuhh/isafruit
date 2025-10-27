@@ -54,7 +54,7 @@ export default function RootLayout({
       <body
         className={`${montserrat.variable} ${jetBrainsMono.variable} ${playfairDisplay.variable}`}
       >
-        <Toaster richColors position="top-center" />
+        <Toaster richColors position="bottom-center" />
         {children}
       </body>
     </html>

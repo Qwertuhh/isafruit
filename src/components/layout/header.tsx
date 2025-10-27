@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Home, Video, Camera, Heart} from "lucide-react";
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
-import Logo from "./logo";
+import { Button } from "@/components/ui/button";
+import Logo from "@/components/layout/logo";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },

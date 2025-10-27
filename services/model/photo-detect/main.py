@@ -186,6 +186,9 @@ def draw_detections_on_image(img_array: np.ndarray, detections: List[Detection])
     
     return img
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 @app.post("/photo-detect", response_model=PhotoDetectResponse)
 async def photo_detect(request: PhotoDetectRequest):
