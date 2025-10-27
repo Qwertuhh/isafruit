@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Video, VideoOff, Camera, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
-import { Detection, GPUInfo } from "@/types";
+import { Detection } from "@/types";
 import Image from "next/image";
 
 interface DeviceInfo {
@@ -34,111 +34,107 @@ export function PhotoCapture() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [inferenceTime, setInferenceTime] = useState(0);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [usePythonBackend, setUsePythonBackend] = useState(false);
   const [pythonBackendAvailable, setPythonBackendAvailable] = useState(false);
-  const [gpuInfo, setGpuInfo] = useState<GPUInfo | null>(null);
   const toastId = useRef<string | number>(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Get available video devices
+  // Fetch available cameras
   const getVideoDevices = useCallback(async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ video: true });
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices
-        .filter((device) => device.kind === "videoinput")
-        .map((device) => ({
-          deviceId: device.deviceId,
-          label: device.label || `Camera ${device.deviceId.slice(0, 5)}`,
+        .filter((d) => d.kind === "videoinput")
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Camera ${d.deviceId.slice(0, 5)}`,
         }));
 
       setDevices(videoDevices);
-      if (videoDevices.length > 0 && !selectedDevice) {
+      if (videoDevices.length > 0 && !selectedDevice)
         setSelectedDevice(videoDevices[0].deviceId);
-      }
     } catch (err) {
-      console.error("Error accessing media devices:", err);
+      console.error("Error getting devices:", err);
     }
   }, [selectedDevice]);
 
-  // Start video stream
+  // Start stream
   const startStream = async () => {
-    if (!selectedDevice || !videoRef.current) return;
-
+    if (!selectedDevice || !videoRef.current) return false;
+    
+    // Stop any existing stream first
+    stopStream();
+    
     try {
-      const constraints = {
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: { exact: selectedDevice },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
-        audio: false,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      });
+      
+      // Set the new stream
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+      
+      // Wait for the video to be ready
+      await new Promise((resolve, reject) => {
+        if (!videoRef.current) return reject('Video ref not available');
+        
+        const onLoaded = () => {
+          videoRef.current?.removeEventListener('loadedmetadata', onLoaded);
+          resolve(true);
+        };
+        
+        videoRef.current.addEventListener('loadedmetadata', onLoaded);
+        videoRef.current.play().catch(reject);
+      });
+      
       setIsStreamActive(true);
-
-      // Clear previous results when starting new stream
-      setAnnotatedImage(null);
-      setDetections([]);
+      return true;
     } catch (err) {
-      console.error("Error starting video stream:", err);
+      console.error("Error starting stream:", err);
+      toast.error("Failed to start video stream. Please check camera permissions.");
+      return false;
     }
   };
 
-  // Stop video stream
+  // Stop stream
   const stopStream = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setIsStreamActive(false);
   };
 
-  // Capture photo and send for detection
+  // Capture and detect
   const capturePhoto = async () => {
-    if (!videoRef.current || !canvasRef.current || !isStreamActive) return;
-
+    if (!videoRef.current || !canvasRef.current) return;
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Set canvas size to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
-      // Draw video frame to canvas
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Get base64 image
       const base64Image = canvas.toDataURL("image/jpeg", 0.9);
 
-      // Show capturing state and loading toast
-      setIsCapturing(true);
-      setAnnotatedImage(null);
-      setDetections([]);
-
-      // Show loading toast
       toastId.current = toast.loading("Processing image...");
+      setIsProcessing(true);
 
-      // Send to detection API (with backend selection)
       const apiUrl = usePythonBackend
         ? "/api/photo-detect?usePython=true"
         : "/api/photo-detect";
 
-      const response = await fetch(apiUrl, {
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -148,135 +144,97 @@ export function PhotoCapture() {
         }),
       });
 
-      const result = await response.json();
+      const result = await res.json();
 
       if (result.detections) {
         setDetections(result.detections);
         setAnnotatedImage(result.annotatedImage);
         setInferenceTime(result.inferenceTime);
-
-        // Update toast to success
         toast.success(
-          `Found ${result.detections.length} object(s) in ${result.inferenceTime}ms`,
-          {
-            id: toastId.current,
-          }
+          `Detected object(s) in ${result.inferenceTime}ms`,
+          { id: toastId.current }
         );
       }
+
+      // Replace live video with image
+      stopStream();
     } catch (error) {
-      console.error("Capture and detection error:", error);
-      toast.error("Failed to process image. Please try again.", {
-        id: toastId.current,
-      });
+      toast.error("Detection failed.", { id: toastId.current });
+      console.error("Detection failed:", error);
     } finally {
       setIsProcessing(false);
-      setIsCapturing(false);
       toastId.current = 0;
     }
   };
 
-  // Download annotated image
-  const downloadImage = () => {
-    if (!annotatedImage) return;
-
-    const link = document.createElement("a");
-    link.href = annotatedImage;
-    link.download = `detection_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Resume camera for next capture
+  const captureNext = async () => {
+    setAnnotatedImage(null);
+    setDetections([]);
+    // Ensure we have a small delay to allow state to update before restarting stream
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await startStream();
   };
 
-  // Check backend availability on mount
-  useEffect(() => {
-    // Check Node.js backend
-    fetch("/api/photo-detect")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.gpu) {
-          setGpuInfo(data.gpu);
-        }
-      })
-      .catch((err) => console.error("Failed to fetch GPU info:", err));
-
-    // Check Python backend availability
-    fetch("/api/photo-detect?usePython=true")
-      .then((res) => {
-        if (res.ok) {
-          setPythonBackendAvailable(true);
-          return res.json();
-        }
-        throw new Error("Python backend not available");
-      })
-      .then((data) => {
-        console.log("Python backend available:", data);
-      })
-      .catch((err) => {
-        console.log("Python backend not available:", err.message);
-        setPythonBackendAvailable(false);
-      });
-  }, []);
-
-  // Initialize devices
+  // Initialize
   useEffect(() => {
     getVideoDevices();
-    return () => {
-      stopStream();
-    };
+    return () => stopStream();
   }, [getVideoDevices]);
 
-  // Handle device change
-  const handleDeviceChange = (deviceId: string) => {
-    setSelectedDevice(deviceId);
-    if (isStreamActive) {
-      stopStream();
-      setTimeout(startStream, 100);
-    }
-  };
+  // Check Python backend
+  useEffect(() => {
+    fetch("/api/photo-detect?usePython=true")
+      .then((r) => {
+        if (r.ok) setPythonBackendAvailable(true);
+      })
+      .catch(() => setPythonBackendAvailable(false));
+  }, []);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Camera Preview Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Camera Preview</CardTitle>
-          <CardDescription>
-            Select a camera and capture a photo for detection
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Backend Toggle */}
-          <div className="flex items-center gap-4 px-2 py-2 bg-muted/50 rounded-md">
-            <label className="text-sm font-medium" htmlFor="usePythonPhoto">
-              Backend:
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="usePythonPhoto"
-                type="checkbox"
-                checked={usePythonBackend}
-                onChange={(e) => setUsePythonBackend(e.target.checked)}
-                className="w-4 h-4"
-                disabled={!pythonBackendAvailable || isProcessing}
-              />
-              <span className="text-sm font-medium">
-                {usePythonBackend ? "Python (FastAPI)" : "Node.js (ONNX)"}
-              </span>
-            </div>
-            {!pythonBackendAvailable && (
-              <span className="text-xs text-yellow-600">
-                Python backend not available
-              </span>
-            )}
-            {pythonBackendAvailable && (
-              <span className="text-xs text-green-600">
-                ✓ Python backend ready
-              </span>
-            )}
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Photo Detection</CardTitle>
+        <CardDescription>
+          {annotatedImage
+            ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
+            : "Start your camera and capture a photo"}
+        </CardDescription>
+      </CardHeader>
 
-          {/* Video Preview */}
-          <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+      <CardContent className="space-y-4">
+        {/* Backend toggle */}
+        <div className="flex items-center gap-4 px-2 py-2 bg-muted/50 rounded-md">
+          <label className="text-sm font-medium" htmlFor="usePythonPhoto">
+            Backend:
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="usePythonPhoto"
+              type="checkbox"
+              checked={usePythonBackend}
+              onChange={(e) => setUsePythonBackend(e.target.checked)}
+              className="w-4 h-4"
+              disabled={!pythonBackendAvailable || isProcessing}
+            />
+            <span className="text-sm font-medium">
+              {usePythonBackend ? "Python (FastAPI)" : "Node.js (ONNX)"}
+            </span>
+          </div>
+        </div>
+
+        {/* Preview area */}
+        <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+          {annotatedImage ? (
+            <Image
+              src={annotatedImage}
+              alt="Detected"
+              className="w-full h-full object-contain"
+              width={1280}
+              height={720}
+              unoptimized
+            />
+          ) : (
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
@@ -284,138 +242,111 @@ export function PhotoCapture() {
               muted
               autoPlay
             />
-            <canvas ref={canvasRef} className="hidden" />
-            {!isStreamActive && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                <VideoOff className="w-12 h-12" />
-              </div>
-            )}
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-col gap-2">
-            <Select
-              value={selectedDevice}
-              onValueChange={handleDeviceChange}
-              disabled={isStreamActive}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a camera" />
-              </SelectTrigger>
-              <SelectContent>
-                {devices.map((device) => (
-                  <SelectItem key={device.deviceId} value={device.deviceId}>
-                    {device.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={isStreamActive ? stopStream : startStream}
-                variant={isStreamActive ? "destructive" : "default"}
-                className="flex-1 gap-2"
-              >
-                {isStreamActive ? (
-                  <>
-                    <VideoOff className="w-4 h-4" />
-                    <span>Stop Camera</span>
-                  </>
-                ) : (
-                  <>
-                    <Video className="w-4 h-4" />
-                    <span>Start Camera</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={capturePhoto}
-                disabled={!isStreamActive || isProcessing}
-                className="flex-1 gap-2"
-              >
-                <Camera className="w-4 h-4" />
-                <span>{isProcessing ? "Capturing..." : "Capture Photo"}</span>
-              </Button>
+          )}
+          <canvas ref={canvasRef} className="hidden" />
+          {!isStreamActive && !annotatedImage && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+              <VideoOff className="w-12 h-12" />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+          {isProcessing && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
+              <Loader2 className="w-10 h-10 animate-spin mb-2" />
+              <p className="text-sm">Analyzing...</p>
+            </div>
+          )}
+        </div>
 
-      {/* Detection Results Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detection Results</CardTitle>
-          <CardDescription>
-            {annotatedImage
-              ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
-              : "Capture a photo to see detection results"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Annotated Image */}
-          <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-            {isCapturing ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
-                <Loader2 className="w-12 h-12 animate-spin mb-4" />
-                <p className="text-lg font-medium">Analyzing image...</p>
-                <p className="text-sm opacity-80 mt-1">
-                  This may take a few seconds
-                </p>
-              </div>
-            ) : annotatedImage ? (
-              <Image
-                src={annotatedImage}
-                alt="Detected objects"
-                className="w-full h-full object-contain"
-                width={1280}
-                height={720}
-                unoptimized
-              />
+        {/* Controls */}
+        <div className="flex flex-col gap-2">
+          <Select
+            value={selectedDevice}
+            onValueChange={(id) => setSelectedDevice(id)}
+            disabled={isStreamActive || annotatedImage !== null}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a camera" />
+            </SelectTrigger>
+            <SelectContent>
+              {devices.map((device) => (
+                <SelectItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-2">
+            {!annotatedImage ? (
+              <>
+                <Button
+                  onClick={isStreamActive ? stopStream : startStream}
+                  variant={isStreamActive ? "destructive" : "default"}
+                  className="flex-1 gap-2"
+                >
+                  {isStreamActive ? (
+                    <>
+                      <VideoOff className="w-4 h-4" />
+                      <span>Stop Camera</span>
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-4 h-4" />
+                      <span>Start Camera</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={capturePhoto}
+                  disabled={!isStreamActive || isProcessing}
+                  className="flex-1 gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>{isProcessing ? "Capturing..." : "Capture Photo"}</span>
+                </Button>
+              </>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No detection yet</p>
-                </div>
-              </div>
+              <Button onClick={captureNext} className="w-full gap-2">
+                <Camera className="w-4 h-4" />
+                <span>Capture Next</span>
+              </Button>
             )}
           </div>
+        </div>
 
-          {/* Download Button */}
-          {annotatedImage && (
+        {/* Detection list (overlay under image) */}
+        {detections.length > 0 && annotatedImage && (
+          <div className="border-t pt-3">
+            <h3 className="text-sm font-semibold mb-2">Detected Objects:</h3>
+            <div className="space-y-1">
+              {detections.map((d, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between bg-muted p-2 rounded-md"
+                >
+                  <span className="font-medium">{d.class}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {(d.confidence * 100).toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
             <Button
-              onClick={downloadImage}
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = annotatedImage;
+                a.download = `detection_${Date.now()}.jpg`;
+                a.click();
+              }}
               variant="outline"
-              className="w-full gap-2"
+              className="mt-3 w-full gap-2"
             >
               <Download className="w-4 h-4" />
               <span>Download Annotated Image</span>
             </Button>
-          )}
-
-          {/* Detection List */}
-          {detections.length > 0 && (
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">Detected Objects:</h3>
-              <div className="space-y-2">
-                {detections.map((detection, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-muted rounded-md"
-                  >
-                    <span className="font-medium">{detection.class}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {(detection.confidence * 100).toFixed(1)}% confidence
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
