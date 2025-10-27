@@ -70,6 +70,8 @@ function Settings({ children, currentBackendRef }: SettingsProps) {
   // Initial check on component mount
   useEffect(() => {
     checkBackends();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCheckAvailability = async () => {

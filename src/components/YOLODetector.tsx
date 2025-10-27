@@ -74,8 +74,8 @@ export function YOLODetector() {
         }
         throw new Error("Python backend not available");
       })
-      .then((data) => {
-        console.log("Python backend available:", data);
+      .then(() => {
+        console.log("Python backend available");
       })
       .catch((err) => {
         console.log("Python backend not available:", err.message);

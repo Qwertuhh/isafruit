@@ -1,16 +1,14 @@
 "use client";
-
+import {Card, CardHeader, CardTitle} from "@/components/ui/card";
 import { PhotoCapture } from "@/components/PhotoCapture";
 function PhotoDetectionPage() {
   return (
-    <div>
       <Card className="border-none shadow-none">
-            <CardHeader>
-              <CardTitle>Photo Detection</CardTitle>
-            </CardHeader>
-      <PhotoCapture />
-      
-    </div>
+        <CardHeader>
+          <CardTitle>Photo Detection</CardTitle>
+        </CardHeader>
+        <PhotoCapture />
+      </Card>
   );
 }
 

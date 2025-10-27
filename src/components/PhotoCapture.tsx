@@ -11,11 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Video,
@@ -44,7 +41,7 @@ export function PhotoCapture() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [inferenceTime, setInferenceTime] = useState(0);
-  const { currentBackend, setCurrentBackend } = useServerStore();
+  const { currentBackend } = useServerStore();
   const usePython = currentBackend === BackendType.PYTHON;
 
   const toastId = useRef<string | number>(0);
@@ -205,6 +202,8 @@ export function PhotoCapture() {
       stopStream();
       setTimeout(startStream, 300);
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBackend]);
 
   // Initialize
@@ -222,12 +221,6 @@ export function PhotoCapture() {
   // Initial backend check is now handled by serverStore
 
   return (
-    
-        <CardDescription>
-          {annotatedImage
-            ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
-            : "Start your camera and capture a photo"}
-        </CardDescription>
 
       <CardContent className="space-y-4">
         {/* Backend toggle */}
@@ -276,6 +269,11 @@ export function PhotoCapture() {
             </div>
           )}
         </div>
+        <CardDescription>
+          {annotatedImage
+            ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
+            : "Start your camera and capture a photo"}
+        </CardDescription>
 
         {/* Controls */}
         <div className="flex flex-col gap-2">
@@ -367,6 +365,5 @@ export function PhotoCapture() {
           </div>
         )}
       </CardContent>
-    </Card>
   );
 }
