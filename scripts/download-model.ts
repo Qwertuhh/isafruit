@@ -64,7 +64,7 @@ function checkAndDownloadPytorchModel() {
   // Check if PyTorch model already exists
   if (fs.existsSync(MODEL_PATH)) {
     terminal
-      .green("✅ PyTorch model already exists at: ")
+      .green("PyTorch model already exists at: ")
       .white(MODEL_PATH + "\n\n");
     terminal.yellow("Do you want to download the model again? (y/N) ");
 
@@ -158,23 +158,23 @@ async function startDownload() {
       fs.renameSync(finalTempPath, MODEL_PATH);
 
       terminal("\n\n");
-      terminal.green("✅ Model downloaded successfully!\n\n");
+      terminal.green("Model downloaded successfully!\n\n");
 
       // If ONNX model exists, delete it since it's now outdated
       if (fs.existsSync(ONNX_MODEL_PATH)) {
         try {
           fs.unlinkSync(ONNX_MODEL_PATH);
           terminal.yellow(
-            "⚠️  Deleted existing ONNX model as it's now outdated.\n"
+            "Deleted existing ONNX model as it's now outdated.\n"
           );
         } catch (err) {
           terminal
-            .red("❌ Failed to delete existing ONNX model: ")
+            .red("Failed to delete existing ONNX model: ")
             .white((err as Error).message + "\n");
         }
       }
 
-      terminal.blue("📋 Next steps:\n");
+      terminal.blue("Next steps:\n");
       terminal.cyan("   1. Convert model to ONNX format:\n");
       terminal.white("      npm run convert-model\n\n");
       terminal.cyan("   2. Start the development server:\n");
@@ -206,18 +206,18 @@ async function startDownload() {
 
       terminal("\n\n");
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      terminal.red(`❌ Error downloading model: ${errorMessage}\n`);
+      terminal.red(`Error downloading model: ${errorMessage}\n`);
 
       if (
         errorMessage.includes("ECONNRESET") ||
         errorMessage.includes("ETIMEDOUT")
       ) {
         terminal.yellow(
-          "\n⚠️  Network error occurred. Please check your internet connection.\n"
+          "\nNetwork error occurred. Please check your internet connection.\n"
         );
       }
 
-      terminal.cyan("\n💡 Alternative: Download manually from:\n");
+      terminal.cyan("\nAlternative: Download manually from:\n");
       terminal.cyan("   https://github.com/ultralytics/assets/releases/\n\n");
       process.exit(1);
     }
@@ -225,7 +225,7 @@ async function startDownload() {
 
   // Add error handling for the downloadFile promise
   downloadFile().catch((err) => {
-    terminal.red(`\n\n❌ Fatal error in download process: ${err.message}\n`);
+    terminal.red(`\n\Fatal error in download process: ${err.message}\n`);
     process.exit(1);
   });
 }
