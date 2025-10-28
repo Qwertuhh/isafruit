@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardDescription } from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Video,
   VideoOff,
@@ -19,15 +19,19 @@ import {
   Download,
   Upload,
   Bot,
+  Heart,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import DetectionPreview from "@/components/detection-preview";
 import { RoboflowResponse } from "@/types";
+import Image from "next/image";
+import { DeviceInfo } from "@/types";
 
-interface DeviceInfo {
-  deviceId: string;
-  label: string;
-}
+const speak = (text: string) => {
+  const utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(utterance);
+};
 
 function HealthAnalyzer() {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -36,12 +40,18 @@ function HealthAnalyzer() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [result, setResult] = useState<RoboflowResponse | null>(null);
-
+  const [rotten, setRotten] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
+  useEffect(() => {
+    if (result) {
+      setRotten(
+        !!result?.predictions?.[0]?.class?.toLowerCase().includes("rotten")
+      );
+    }
+  }, [result, rotten]);
   // === Fetch Camera Devices ===
   const getVideoDevices = useCallback(async () => {
     try {
@@ -149,9 +159,21 @@ function HealthAnalyzer() {
         data: cleanBase64,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
+      const fruitName = res.data.predictions[0].class.split(" ")[0];
 
+      // Extract "rotten" or "fresh" from the class name
+      //? UseEffect Does not react to changes in the result object
+      const extractedRotten = res.data.predictions[0].class
+        .split(" ")[1]
+        .toLowerCase()
+        .includes("rotten");
       setResult(res.data);
       toast.success("Image analyzed successfully!");
+      speak(
+        `This is a ${fruitName} and It is ${
+          extractedRotten ? "rotten" : "fresh"
+        }`
+      );
     } catch (err) {
       console.error(err);
       toast.error("Failed to analyze image.");
@@ -164,6 +186,10 @@ function HealthAnalyzer() {
   const captureNext = async () => {
     setPreviewImage(null);
     setResult(null);
+    setRotten(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     await startStream();
   };
 
@@ -175,6 +201,18 @@ function HealthAnalyzer() {
 
   return (
     <CardContent className="space-y-4 mt-4">
+      <CardDescription>
+        Analyze the health of your fruits with our advanced AI-powered system.
+      </CardDescription>
+      <CardTitle className="text-2xl font-bold">
+        {result?.predictions?.[0]?.class}
+        {result && result.predictions && result.predictions.length > 0 && (
+          <span className={rotten ? "text-red-500" : "text-green-500"}>
+            {" "}
+            {rotten ? <X className="inline" /> : <Heart className="inline" />}
+          </span>
+        )}
+      </CardTitle>
       {/* === Preview Area === */}
       <div className="relative aspect-video bg-black rounded-md overflow-hidden">
         {previewImage ? (
@@ -184,7 +222,9 @@ function HealthAnalyzer() {
               predictions={result.predictions || []}
             />
           ) : (
-            <img
+            <Image
+              width={500}
+              height={500}
               src={previewImage}
               alt="Preview"
               className="w-full h-full object-contain"

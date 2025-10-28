@@ -73,7 +73,10 @@ interface RoboflowResponse {
   };
   // Add other properties as needed based on the actual API response
 }
-
+interface DeviceInfo {
+  deviceId: string;
+  label: string;
+}
 export type {
   Detection,
   InferenceResult,
@@ -83,7 +86,8 @@ export type {
   RawInferenceResponse,
   RawDetection,
   RoboflowDetection,
-  RoboflowResponse
+  RoboflowResponse,
+  DeviceInfo
 };
 
 export * from "@/types/store";
