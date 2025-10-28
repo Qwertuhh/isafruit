@@ -222,7 +222,7 @@ export function PhotoCapture() {
 
   return (
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 h">
         {/* Backend toggle */}
         <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md justify-between">
           <p className="text-sm font-medium flex">
@@ -237,7 +237,7 @@ export function PhotoCapture() {
         </div>
 
         {/* Preview area */}
-        <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+        <div className="relative aspect-video  bg-black rounded-md overflow-hidden">
           {annotatedImage ? (
             <Image
               src={annotatedImage}

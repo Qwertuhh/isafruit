@@ -2,11 +2,16 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { usePathname } from "next/navigation";
 
 interface ClassificationLayoutProps {
   children: React.ReactNode;
 }
+
 function ClassificationLayout({ children }: ClassificationLayoutProps) {
+  const pathname = usePathname();
+  const pageName = pathname.split("/").pop() || "home";
+
   return (
     <SidebarProvider
       style={
@@ -18,10 +23,8 @@ function ClassificationLayout({ children }: ClassificationLayoutProps) {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          {children}
-        </div>
+        <SiteHeader pageName={pageName[0].toUpperCase() + pageName.slice(1)} />
+        <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +87,6 @@ function RoboflowOpenCVAnalyzer() {
     }
   };
 
-
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
@@ -101,7 +100,7 @@ function RoboflowOpenCVAnalyzer() {
         <CardContent className="space-y-4">
           {/* File Input */}
           <input
-          placeholder="Upload an image"
+            placeholder="Upload an image"
             type="file"
             accept="image/*"
             onChange={handleFileChange}
@@ -125,7 +124,6 @@ function RoboflowOpenCVAnalyzer() {
             )}
           </Button>
 
-
           {/* Result JSON */}
           {result && (
             <pre className="mt-4 p-3 bg-muted rounded-md text-xs overflow-auto max-h-64">
@@ -133,10 +131,10 @@ function RoboflowOpenCVAnalyzer() {
             </pre>
           )}
           {selectedFile && result && (
-          <DetectionPreview
-          imageUrl={URL.createObjectURL(selectedFile!)}
-          predictions={result?.predictions || []}
-          />
+            <DetectionPreview
+              imageUrl={URL.createObjectURL(selectedFile!)}
+              predictions={result?.predictions || []}
+            />
           )}
         </CardContent>
       </Card>

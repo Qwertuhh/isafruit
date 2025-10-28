@@ -1,4 +1,4 @@
-import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react";
+import { type Icon } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +8,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Waypoints } from "lucide-react";
-
+import { Waypoints, Loader2 } from "lucide-react";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 export function NavMain({
   items,
 }: {
@@ -19,6 +20,13 @@ export function NavMain({
     icon?: Icon;
   }[];
 }) {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const handleNavigation = (url: string) => {
+    startTransition(() => {
+      router.push(url);
+    });
+  };
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -30,12 +38,20 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span onClick={() => window.location.href = item.url}>{item.title}</span>
-              </SidebarMenuButton>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={() => handleNavigation(item.url)}
+                disabled={isPending}
+              >
+                {item.icon && <item.icon className="h-4 w-4" />}
+                {item.title}
+              </Button>
             </SidebarMenuItem>
           ))}
+          {isPending && (
+            <Loader2 className="ml-auto h-4 w-4 animate-spin" />
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
