@@ -10,24 +10,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
+import { CardContent, CardDescription } from "@/components/ui/card";
 import {
   Video,
   VideoOff,
   Camera,
   Loader2,
   Download,
+  Upload,
   Settings as SettingsIcon,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Detection } from "@/types";
 import Image from "next/image";
 import { BackendType } from "@/types/store";
 import Settings from "@/components/layout/settings";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 interface DeviceInfo {
   deviceId: string;
   label: string;
@@ -41,6 +44,7 @@ export function PhotoCapture() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [annotatedImage, setAnnotatedImage] = useState<string | null>(null);
   const [inferenceTime, setInferenceTime] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentBackend } = useServerStore();
   const usePython = currentBackend === BackendType.PYTHON;
 
@@ -123,7 +127,97 @@ export function PhotoCapture() {
     setIsStreamActive(false);
   };
 
-  // Capture and detect
+  // Handle file selection
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.match("image/jpeg") && !file.type.match("image/png")) {
+      toast.error("Please select a valid image file (JPEG or PNG)");
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Image = e.target?.result as string;
+      if (base64Image) {
+        await processImage(base64Image);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Process the captured or uploaded image
+  const processImage = async (base64Image: string) => {
+    if (!base64Image) {
+      console.error("No image data provided to processImage");
+      return;
+    }
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new window.Image();
+    img.src = base64Image;
+
+    await new Promise<void>((resolve) => {
+      img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve();
+      };
+    });
+
+    toastId.current = toast.loading("Processing image...");
+    setIsProcessing(true);
+
+    try {
+      const apiUrl = usePython
+        ? "/api/photo-detect?usePython=true"
+        : "/api/photo-detect";
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: canvas.toDataURL("image/jpeg", 0.9),
+          width: canvas.width,
+          height: canvas.height,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (result.detections) {
+        setDetections(result.detections);
+        setAnnotatedImage(result.annotatedImage);
+        setInferenceTime(result.inferenceTime);
+        toast.success(`Detected object(s) in ${result.inferenceTime}ms`, {
+          id: toastId.current,
+        });
+      }
+    } catch (error) {
+      toast.error("Detection failed.", { id: toastId.current });
+      console.error("Detection failed:", error);
+    } finally {
+      setIsProcessing(false);
+      toastId.current = 0;
+    }
+  };
+
+  // Capture and detect from camera
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     try {
@@ -221,62 +315,40 @@ export function PhotoCapture() {
   // Initial backend check is now handled by serverStore
 
   return (
-
-      <CardContent className="space-y-4 h">
-        {/* Backend toggle */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-md justify-between">
-          <p className="text-sm font-medium flex">
-            Backend -
-          <span className="mx-1 font-semibold">{currentBackend}</span>
-          </p>
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Settings currentBackendRef={currentBackendRef}>
-              <SettingsIcon className="h-4 w-4" />
-            </Settings>
-          </div>
+    <CardContent className="space-y-4 h">
+      {/* Preview area */}
+      <div className="relative aspect-video  bg-black rounded-md overflow-hidden">
+        <div className="absolute flex flex-row gap-2 top-2 right-2 z-10 text-white p-1">
+          <Tooltip>
+            <TooltipTrigger>
+              <div className="border-2 border-white rounded p-1">
+                <Image
+                  src={
+                    currentBackend === BackendType.PYTHON
+                      ? "/python.svg"
+                      : "/nodejs.svg"
+                  }
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="rounded-full w-4 h-4"
+                  style={{
+                    filter: "invert(1)",
+                  }}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent >
+              <p>{currentBackend}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Settings currentBackendRef={currentBackendRef} >
+            <SettingsIcon className="h-4 w-4 m-1" />
+          </Settings>
         </div>
 
-        {/* Preview area */}
-        <div className="relative aspect-video  bg-black rounded-md overflow-hidden">
-          {annotatedImage ? (
-            <Image
-              src={annotatedImage}
-              alt="Detected"
-              className="w-full h-full object-contain"
-              width={1280}
-              height={720}
-              unoptimized
-            />
-          ) : (
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              playsInline
-              muted
-              autoPlay
-            />
-          )}
-          <canvas ref={canvasRef} className="hidden" />
-          {!isStreamActive && !annotatedImage && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-              <VideoOff className="w-12 h-12" />
-            </div>
-          )}
-          {isProcessing && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
-              <Loader2 className="w-10 h-10 animate-spin mb-2" />
-              <p className="text-sm">Analyzing...</p>
-            </div>
-          )}
-        </div>
-        <CardDescription>
-          {annotatedImage
-            ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
-            : "Start your camera and capture a photo"}
-        </CardDescription>
-
-        {/* Controls */}
-        <div className="flex flex-col gap-2">
+        {/* Device selector */}
+        <div className="absolute bottom-2 left-2 z-10 text-white rounded-md border-none">
           <Select
             value={selectedDevice}
             onValueChange={(id) => setSelectedDevice(id)}
@@ -293,77 +365,149 @@ export function PhotoCapture() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        {annotatedImage ? (
+          <Image
+            src={annotatedImage}
+            alt="Detected"
+            className="w-full h-full object-contain"
+            width={1280}
+            height={720}
+            unoptimized
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            muted
+            autoPlay
+          />
+        )}
+        <canvas ref={canvasRef} className="hidden" />
+        {!isStreamActive && !annotatedImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+            <VideoOff className="w-12 h-12" />
+          </div>
+        )}
+        {isProcessing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
+            <Loader2 className="w-10 h-10 animate-spin mb-2" />
+            <p className="text-sm">Analyzing...</p>
+          </div>
+        )}
+      </div>
+      <CardDescription>
+        {annotatedImage
+          ? `Found ${detections.length} object(s) in ${inferenceTime}ms`
+          : "Start your camera and capture a photo"}
+      </CardDescription>
 
-          <div className="flex gap-2">
-            {!annotatedImage ? (
-              <>
-                <Button
-                  onClick={isStreamActive ? stopStream : startStream}
-                  variant={isStreamActive ? "destructive" : "default"}
-                  className="flex-1 gap-2"
-                >
-                  {isStreamActive ? (
-                    <>
-                      <VideoOff className="w-4 h-4" />
-                      <span>Stop Camera</span>
-                    </>
-                  ) : (
-                    <>
-                      <Video className="w-4 h-4" />
-                      <span>Start Camera</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={capturePhoto}
-                  disabled={!isStreamActive || isProcessing}
-                  className="flex-1 gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>{isProcessing ? "Capturing..." : "Capture Photo"}</span>
-                </Button>
-              </>
-            ) : (
-              <Button onClick={captureNext} className="w-full gap-2">
+      {/* Controls */}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          {annotatedImage ? (
+            <div className="flex gap-2 w-full">
+              <Button
+                onClick={captureNext}
+                variant="outline"
+                className="flex-1 gap-2"
+              >
                 <Camera className="w-4 h-4" />
                 <span>Capture Next</span>
               </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Detection list (overlay under image) */}
-        {detections.length > 0 && annotatedImage && (
-          <div className="border pt-3">
-            <h3 className="text-sm font-semibold mb-2">Detected Objects:</h3>
-            <div className="space-y-1">
-              {detections.map((d, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between bg-muted p-2 rounded-md"
-                >
-                  <span className="font-medium">{d.class}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {(d.confidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-              ))}
+              <Button
+                onClick={capturePhoto}
+                disabled={isProcessing}
+                className="flex-1 gap-2"
+              >
+                <Bot className="w-4 h-4" />
+                <span>Analyze Again</span>
+              </Button>
             </div>
-            <Button
-              onClick={() => {
-                const a = document.createElement("a");
-                a.href = annotatedImage;
-                a.download = `detection_${Date.now()}.jpg`;
-                a.click();
-              }}
-              variant="outline"
-              className="mt-3 w-full gap-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Annotated Image</span>
-            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={isStreamActive ? stopStream : startStream}
+                disabled={isProcessing}
+                title={isStreamActive ? "Stop Camera" : "Start Camera"}
+              >
+                {isStreamActive ? (
+                  <VideoOff className="h-4 w-4" />
+                ) : (
+                  <Video className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {isStreamActive ? "Stop Camera" : "Start Camera"}
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                title="Upload from device"
+              >
+                <Upload className="h-4 w-4" />
+                <span className="sr-only">Upload from device</span>
+              </Button>
+              <input
+                placeholder="Upload an image"
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg, image/png"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                onClick={capturePhoto}
+                disabled={!isStreamActive || isProcessing}
+                className="flex-1 gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                <span>
+                  {isProcessing ? "Capturing..." : "Capture & Analyze"}
+                </span>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Detection list (overlay under image) */}
+      {detections.length > 0 && annotatedImage && (
+        <div className="border pt-3">
+          <h3 className="text-sm font-semibold mb-2">Detected Objects:</h3>
+          <div className="space-y-1">
+            {detections.map((d, i) => (
+              <div
+                key={i}
+                className="flex justify-between bg-muted p-2 rounded-md"
+              >
+                <span className="font-medium">{d.class}</span>
+                <span className="text-sm text-muted-foreground">
+                  {(d.confidence * 100).toFixed(1)}%
+                </span>
+              </div>
+            ))}
           </div>
-        )}
-      </CardContent>
+          <Button
+            onClick={() => {
+              const a = document.createElement("a");
+              a.href = annotatedImage;
+              a.download = `detection_${Date.now()}.jpg`;
+              a.click();
+            }}
+            variant="outline"
+            className="mt-3 w-full gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Annotated Image</span>
+          </Button>
+        </div>
+      )}
+    </CardContent>
   );
 }

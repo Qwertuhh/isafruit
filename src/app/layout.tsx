@@ -28,13 +28,13 @@ export const metadata: Metadata = {
   title: "Real-Time Video Inference | YOLO Detection",
   icons: {
     icon: [
-      { url: '/logo.svg' },
+      { url: '/logo-bg.svg' },
     ],
     shortcut: [
-      { url: '/logo.svg' },
+      { url: '/logo-bg.svg' },
     ],
     apple: [
-      { url: '/logo.svg' },
+      { url: '/logo-bg.svg' },
     ],
   },
   manifest: '/site.webmanifest',

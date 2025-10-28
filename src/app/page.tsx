@@ -5,6 +5,7 @@ import Link from "next/link";
 import Logo from "@/components/layout/logo";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { useState } from "react";
+import Footer from "@/components/footer";
 
 export default function Home() {
   const [showCapture, setShowCapture] = useState(false);
@@ -34,6 +35,7 @@ export default function Home() {
   }
 
   return (
+    <>
     <main className="min-h-screen bg-background">
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] px-4 py-8 sm:py-12 md:py-16">
         <div className="w-full max-w-3xl text-center space-y-6 sm:space-y-8 animate-fade-in px-2">
@@ -91,5 +93,7 @@ export default function Home() {
         </div>
       </div>
     </main>
+    <Footer />
+    </>
   );
 }

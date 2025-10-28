@@ -4,13 +4,11 @@ import * as React from "react"
 import {
   IconChartBar,
   IconDashboard,
-  IconHelp,
-  IconInnerShadowTop,
+  IconLicense,
   IconListDetails,
-  IconSearch,
-  IconSettings,
+  IconNote,
 } from "@tabler/icons-react"
-
+import Logo from "@/components/layout/logo"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import {
@@ -21,6 +19,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 const data = {
   navMain: [
@@ -42,20 +41,15 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "/settings",
-      icon: IconSettings,
+      title: "License",
+      url: "/license",
+      icon: IconLicense,
     },
     {
-      title: "Get Help",
-      url: "/help",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "/search",
-      icon: IconSearch,
-    },
+      title: "Note",
+      url: "/note",
+      icon: IconNote,
+    }
   ],
 
 }
@@ -68,12 +62,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 justify-left"
             >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
+              <Link href="/">
+              <Logo background size={30} className="rounded" />
+                <span className="text-base font-semibold">Is A Fruit?</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
