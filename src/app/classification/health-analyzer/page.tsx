@@ -1,84 +1,157 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Loader2, Upload } from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { CardContent, CardDescription } from "@/components/ui/card";
+import {
+  Video,
+  VideoOff,
+  Camera,
+  Loader2,
+  Download,
+  Upload,
+  Bot,
+} from "lucide-react";
 import { toast } from "sonner";
 import DetectionPreview from "@/components/detection-preview";
 import { RoboflowResponse } from "@/types";
 
-function RoboflowOpenCVAnalyzer() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<RoboflowResponse | null>(null);
+interface DeviceInfo {
+  deviceId: string;
+  label: string;
+}
+
+function HealthAnalyzer() {
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [isStreamActive, setIsStreamActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [opencvLoaded, setOpencvLoaded] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [result, setResult] = useState<RoboflowResponse | null>(null);
 
-  // Load OpenCV.js once
-  useEffect(() => {
-    if (window.cv) {
-      setOpencvLoaded(true);
-      return;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // === Fetch Camera Devices ===
+  const getVideoDevices = useCallback(async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices
+        .filter((d) => d.kind === "videoinput")
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Camera ${d.deviceId.slice(0, 5)}`,
+        }));
+      setDevices(videoDevices);
+      if (videoDevices.length && !selectedDevice)
+        setSelectedDevice(videoDevices[0].deviceId);
+    } catch (error) {
+      toast.error("Unable to access camera. Please check permissions.");
+      console.error("Error getting devices:", error);
     }
+  }, [selectedDevice]);
 
-    const script = document.createElement("script");
-    script.src = "https://docs.opencv.org/4.x/opencv.js";
-    script.async = true;
-    script.onload = () => {
-      console.log("✅ OpenCV.js loaded");
-      setOpencvLoaded(true);
-    };
-    script.onerror = () => toast.error("Failed to load OpenCV.js");
-    document.body.appendChild(script);
-  }, []);
-
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
-    setResult(null);
+  // === Start Stream ===
+  const startStream = async () => {
+    stopStream();
+    if (!selectedDevice || !videoRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: selectedDevice } },
+      });
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setIsStreamActive(true);
+      setPreviewImage(null);
+      setResult(null);
+    } catch (error) {
+      toast.error("Failed to start camera stream");
+      console.error("Error starting stream:", error);
+    }
   };
 
-  // Send image to Roboflow
-  const analyzeImage = async () => {
-    if (!selectedFile) {
-      toast.error("Please select an image first!");
-      return;
-    }
+  // === Stop Stream ===
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setIsStreamActive(false);
+  };
+
+  // === Handle Device Change ===
+  useEffect(() => {
+    if (selectedDevice) startStream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice]);
+
+  // === Capture Photo from Webcam ===
+  const capturePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    const base64Image = canvas.toDataURL("image/jpeg", 0.9);
+
+    stopStream();
+    setPreviewImage(base64Image);
+    await analyzeImage(base64Image);
+  };
+
+  // === Handle File Upload ===
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    stopStream();
+    setResult(null);
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const imgData = event.target?.result as string;
+      setPreviewImage(imgData);
+      await analyzeImage(imgData);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // === Analyze Image via Roboflow ===
+  const analyzeImage = async (base64Image: string) => {
     setIsProcessing(true);
-    toast.loading("Analyzing image...");
 
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
+      const cleanBase64 = base64Image.replace(
+        /^data:image\/[a-z]+;base64,/,
+        ""
+      );
 
-      reader.onload = async () => {
-        const base64Image = (reader.result as string).replace(
-          /^data:image\/[a-z]+;base64,/,
-          ""
-        );
+      const res = await axios({
+        method: "POST",
+        url: "https://serverless.roboflow.com/fruit-ripeness-unjex/2",
+        params: {
+          api_key: "GNiFfSbz1Wj9BGyzL221",
+        },
+        data: cleanBase64,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
 
-        const res = await axios({
-          method: "POST",
-          url: "https://serverless.roboflow.com/fruit-ripeness-unjex/2",
-          params: {
-            api_key: "GNiFfSbz1Wj9BGyzL221",
-          },
-          data: base64Image,
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        });
-
-        setResult(res.data);
-        toast.success("Image analyzed successfully!");
-      };
+      setResult(res.data);
+      toast.success("Image analyzed successfully!");
     } catch (err) {
       console.error(err);
       toast.error("Failed to analyze image.");
@@ -87,59 +160,160 @@ function RoboflowOpenCVAnalyzer() {
     }
   };
 
+  // === Capture Next ===
+  const captureNext = async () => {
+    setPreviewImage(null);
+    setResult(null);
+    await startStream();
+  };
+
+  // === Init ===
+  useEffect(() => {
+    getVideoDevices();
+    return () => stopStream();
+  }, [getVideoDevices]);
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Fruit Ripeness Detector</CardTitle>
-          <CardDescription>
-            Upload an image and analyze the health of the fruit.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {/* File Input */}
-          <input
-            placeholder="Upload an image"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full text-sm border rounded-md p-2 cursor-pointer"
-          />
-
-          {/* Analyze Button */}
-          <Button
-            onClick={analyzeImage}
-            disabled={!selectedFile || isProcessing || !opencvLoaded}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" /> Analyze Image
-              </>
-            )}
-          </Button>
-
-          {/* Result JSON */}
-          {result && (
-            <pre className="mt-4 p-3 bg-muted rounded-md text-xs overflow-auto max-h-64">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          )}
-          {selectedFile && result && (
+    <CardContent className="space-y-4 mt-4">
+      {/* === Preview Area === */}
+      <div className="relative aspect-video bg-black rounded-md overflow-hidden">
+        {previewImage ? (
+          result ? (
             <DetectionPreview
-              imageUrl={URL.createObjectURL(selectedFile!)}
-              predictions={result?.predictions || []}
+              imageUrl={previewImage}
+              predictions={result.predictions || []}
             />
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          ) : (
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="w-full h-full object-contain"
+            />
+          )
+        ) : (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            muted
+            autoPlay
+          />
+        )}
+
+        {/* Loader Overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white z-30">
+            <Loader2 className="w-8 h-8 animate-spin mb-2" />
+            <p>Analyzing...</p>
+          </div>
+        )}
+
+        {/* Camera Off Overlay */}
+        {!isStreamActive && !previewImage && !isProcessing && !result && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white z-20">
+            <VideoOff className="w-12 h-12" />
+          </div>
+        )}
+
+        {/* Camera Selector */}
+        <div className="absolute bottom-2 left-2 z-40">
+          <Select
+            value={selectedDevice}
+            onValueChange={setSelectedDevice}
+            disabled={isProcessing || result !== null}
+          >
+            <SelectTrigger className="bg-black/60 text-white border-none">
+              <SelectValue placeholder="Select Camera" />
+            </SelectTrigger>
+            <SelectContent>
+              {devices.map((device) => (
+                <SelectItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <canvas ref={canvasRef} className="hidden" />
+      </div>
+
+      <CardDescription>
+        {result
+          ? `Detected ${result.predictions?.length || 0} object(s)`
+          : previewImage
+          ? "Analyzing or ready to analyze..."
+          : "Start camera or upload an image"}
+      </CardDescription>
+
+      {/* === Controls === */}
+      <div className="flex flex-col gap-2">
+        {!result ? (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={isStreamActive ? stopStream : startStream}
+              disabled={isProcessing}
+            >
+              {isStreamActive ? (
+                <VideoOff className="w-4 h-4" />
+              ) : (
+                <Video className="w-4 h-4" />
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
+            >
+              <Upload className="w-4 h-4" />
+            </Button>
+            <input
+              placeholder="Upload Image"
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            {!previewImage && (
+              <Button
+                className="flex-1 gap-2"
+                onClick={capturePhoto}
+                disabled={!isStreamActive || isProcessing}
+              >
+                <Bot className="w-4 h-4" />
+                Capture & Analyze
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button onClick={captureNext} variant="outline" className="flex-1">
+              <Camera className="w-4 h-4 mr-2" />
+              Capture Next
+            </Button>
+            <Button
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = previewImage!;
+                a.download = `detection_${Date.now()}.jpg`;
+                a.click();
+              }}
+              variant="outline"
+              className="flex-1"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+          </div>
+        )}
+      </div>
+    </CardContent>
   );
 }
 
-export default RoboflowOpenCVAnalyzer;
+export default HealthAnalyzer;
