@@ -31,7 +31,6 @@ interface InferenceResult {
   imageHeight: number;
 }
 
-
 interface YOLOConfig {
   modelPath: string;
   inputSize: number;
@@ -77,6 +76,8 @@ interface DeviceInfo {
   deviceId: string;
   label: string;
 }
+
+type EatibleStatus = "rotten" | "overriped" | "underriped" | "ripe";
 export type {
   Detection,
   InferenceResult,
@@ -87,7 +88,8 @@ export type {
   RawDetection,
   RoboflowDetection,
   RoboflowResponse,
-  DeviceInfo
+  DeviceInfo,
+  EatibleStatus
 };
 
 export * from "@/types/store";

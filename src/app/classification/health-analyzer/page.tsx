@@ -21,15 +21,25 @@ import {
   Bot,
   Heart,
   X,
+  Speaker,
 } from "lucide-react";
 import { toast } from "sonner";
 import DetectionPreview from "@/components/detection-preview";
-import { RoboflowResponse } from "@/types";
+import { EatibleStatus, RoboflowResponse } from "@/types";
 import Image from "next/image";
 import { DeviceInfo } from "@/types";
+import { RefObject } from "react";
 
-const speak = (text: string) => {
-  const utterance = new SpeechSynthesisUtterance(text);
+const speak = (speechText: string) => {
+  if (!("speechSynthesis" in window)) {
+    toast.error("Speech synthesis not supported in this browser.");
+    return;
+  }
+  if (!speechText) {
+    console.error("No text to speak.");
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(speechText);
   speechSynthesis.speak(utterance);
 };
 
@@ -40,18 +50,13 @@ function HealthAnalyzer() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [result, setResult] = useState<RoboflowResponse | null>(null);
-  const [rotten, setRotten] = useState<boolean>(false);
+  const [eatible, setEatible] = useState<boolean>(false);
+  const [speech, setSpeech] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  useEffect(() => {
-    if (result) {
-      setRotten(
-        !!result?.predictions?.[0]?.class?.toLowerCase().includes("rotten")
-      );
-    }
-  }, [result, rotten]);
+
   // === Fetch Camera Devices ===
   const getVideoDevices = useCallback(async () => {
     try {
@@ -161,19 +166,23 @@ function HealthAnalyzer() {
       });
       const fruitName = res.data.predictions[0].class.split(" ")[0];
 
+      setResult(res.data);
       // Extract "rotten" or "fresh" from the class name
       //? UseEffect Does not react to changes in the result object
-      const extractedRotten = res.data.predictions[0].class
-        .split(" ")[1]
-        .toLowerCase()
-        .includes("rotten");
-      setResult(res.data);
+      const extractedEatibleStatus: EatibleStatus =
+        res.data.predictions[0].class.split(" ")[1].toLowerCase();
+      const eatible =
+        extractedEatibleStatus === "rotten" ||
+        extractedEatibleStatus === "overriped" ||
+        extractedEatibleStatus === "underriped";
+      setEatible(eatible);
       toast.success("Image analyzed successfully!");
-      speak(
-        `This is a ${fruitName} and It is ${
-          extractedRotten ? "rotten" : "fresh"
-        }`
-      );
+      const speech = `This is a ${fruitName} and It is ${
+        eatible ? "Eatible" : "Not Eatible"
+      }`;
+      setSpeech(speech);
+
+      speak(speech);
     } catch (err) {
       console.error(err);
       toast.error("Failed to analyze image.");
@@ -186,7 +195,7 @@ function HealthAnalyzer() {
   const captureNext = async () => {
     setPreviewImage(null);
     setResult(null);
-    setRotten(false);
+    setEatible(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -207,9 +216,9 @@ function HealthAnalyzer() {
       <CardTitle className="text-2xl font-bold">
         {result?.predictions?.[0]?.class}
         {result && result.predictions && result.predictions.length > 0 && (
-          <span className={rotten ? "text-red-500" : "text-green-500"}>
+          <span className={eatible ? "text-red-500" : "text-green-500"}>
             {" "}
-            {rotten ? <X className="inline" /> : <Heart className="inline" />}
+            {eatible ? <X className="inline" /> : <Heart className="inline" />}
           </span>
         )}
       </CardTitle>
@@ -296,7 +305,7 @@ function HealthAnalyzer() {
               onClick={isStreamActive ? stopStream : startStream}
               disabled={isProcessing}
             >
-              {isStreamActive ? (
+              {!isStreamActive ? (
                 <VideoOff className="w-4 h-4" />
               ) : (
                 <Video className="w-4 h-4" />
@@ -318,7 +327,6 @@ function HealthAnalyzer() {
               className="hidden"
               onChange={handleFileChange}
             />
-
             {!previewImage && (
               <Button
                 className="flex-1 gap-2"
@@ -331,7 +339,7 @@ function HealthAnalyzer() {
             )}
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-4">
             <Button onClick={captureNext} variant="outline" className="flex-1">
               <Camera className="w-4 h-4 mr-2" />
               Capture Next
@@ -348,6 +356,9 @@ function HealthAnalyzer() {
             >
               <Download className="w-4 h-4 mr-2" />
               Download
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => speak(speech)}>
+              <Speaker />
             </Button>
           </div>
         )}
