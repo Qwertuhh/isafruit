@@ -28,7 +28,6 @@ import DetectionPreview from "@/components/detection-preview";
 import { EatibleStatus, RoboflowResponse } from "@/types";
 import Image from "next/image";
 import { DeviceInfo } from "@/types";
-import { RefObject } from "react";
 
 const speak = (speechText: string) => {
   if (!("speechSynthesis" in window)) {
