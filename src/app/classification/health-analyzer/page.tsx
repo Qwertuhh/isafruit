@@ -154,7 +154,7 @@ function HealthAnalyzer() {
         method: "POST",
         url: "https://serverless.roboflow.com/fruit-ripeness-unjex/2",
         params: {
-          api_key: "GNiFfSbz1Wj9BGyzL221",
+          api_key: process.env.NEXT_PUBLIC_ROBOFLOW_API_KEY,
         },
         data: cleanBase64,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

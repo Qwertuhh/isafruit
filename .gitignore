@@ -72,3 +72,5 @@ todo.md
 # kaggle
 kaggle.json
 **/kaggle.json
+
+!*.example
