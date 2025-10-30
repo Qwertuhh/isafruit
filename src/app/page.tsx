@@ -27,6 +27,16 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 w-full max-w-md mx-auto">
+              <Link href="/classification/health-analyzer" className="w-full">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
+                >
+                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+                  <span>Health Analyzer</span>
+                </Button>
+              </Link>
               <Link
                 href="/classification/photo"
                 className="w-full sm:w-auto flex-1 sm:flex-none"
@@ -49,16 +59,6 @@ export default function Home() {
                   className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
                 >
                   <span>Video Detection</span>
-                </Button>
-              </Link>
-              <Link href="/classification/health-analyzer" className="w-full">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full gap-2 group transition-all duration-200 hover:scale-105 text-sm sm:text-base"
-                >
-                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                  <span>Health Analyzer</span>
                 </Button>
               </Link>
             </div>
