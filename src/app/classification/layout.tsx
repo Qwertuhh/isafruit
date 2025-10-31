@@ -5,7 +5,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 
 interface ClassificationLayoutProps {
   children: React.ReactNode;
@@ -30,8 +30,8 @@ function ClassificationLayout({ children }: ClassificationLayoutProps) {
           variant="default"
           className="bg-amber-300 border-2 border-amber-500 w-full rounded-none"
         >
-          <AlertCircle />
-          <AlertTitle>Discontinued Project</AlertTitle>
+          <TriangleAlert />
+          <AlertTitle>Warning</AlertTitle>
           <AlertDescription className="flex flex-row">
             This a discontinued project,{" "}
             <Link className="text-blue-600 font-bold" href="/note">

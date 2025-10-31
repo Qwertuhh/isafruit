@@ -3,7 +3,7 @@
 A real-time fruit and vegetable detection application powered by YOLO11 with GPU acceleration and OpenCV.js for optimized video processing.
 
 > [!WARNING]
-> This a discontinued project, If you still want to use it or contribute to it.
+> - This a discontinued project, If you still want to use it or contribute to it.
 
 ## Features
 
@@ -14,7 +14,10 @@ A real-time fruit and vegetable detection application powered by YOLO11 with GPU
 - 📊 **Performance Monitoring**: Real-time FPS and inference time tracking
 - 🎯 **High Accuracy**: YOLO11n model for object detection
 
-## GPU Requirements
+> [!IMPORTANT]
+> - Use your own **API Keys**
+
+## GPU Requirements (Optional)
 
 The application automatically detects and uses NVIDIA GPUs with:
 
