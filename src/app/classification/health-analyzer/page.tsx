@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DetectionPreview from "@/components/detection-preview";
-import { EatibleStatus, RoboflowResponse } from "@/types";
+import { EatibleStatus, RoboflowDetection, RoboflowResponse } from "@/types";
 import Image from "next/image";
 import { DeviceInfo } from "@/types";
 
@@ -163,7 +163,12 @@ function HealthAnalyzer() {
         data: cleanBase64,
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
-      const fruitName = res.data.predictions[0].class.split(" ")[0];
+      const predictions: RoboflowDetection[] | null = res.data.predictions;
+      if (!predictions){
+        toast.error("No predictions found");
+        return;
+      };
+      const fruitName = predictions[0].class.split(" ")[0];
 
       setResult(res.data);
       // Extract "rotten" or "fresh" from the class name
@@ -295,7 +300,7 @@ function HealthAnalyzer() {
       </CardDescription>
 
       {/* === Controls === */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 py-4 px-1">
         {!result ? (
           <div className="flex gap-2">
             <Button
@@ -304,7 +309,7 @@ function HealthAnalyzer() {
               onClick={isStreamActive ? stopStream : startStream}
               disabled={isProcessing}
             >
-              {!isStreamActive ? (
+              {isStreamActive ? (
                 <VideoOff className="w-4 h-4" />
               ) : (
                 <Video className="w-4 h-4" />
